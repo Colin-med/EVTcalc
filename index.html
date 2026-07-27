@@ -98,11 +98,15 @@
   /* ---------- results ---------- */
   .summary-strip {
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 12px 16px; margin-bottom: 16px; font-size: 0.95rem; display:flex; gap:18px; flex-wrap:wrap;
+    padding: 13px 16px; margin-bottom: 16px; font-size: 0.95rem; display:flex; flex-direction:column; gap:5px;
   }
-  .summary-strip b.go { color: var(--go); }
-  .summary-strip b.nogo { color: var(--nogo); }
-  .summary-strip b.unk { color: var(--unk); }
+  .synth-headline { font-weight: 700; font-size: 1.02rem; letter-spacing:-0.01em; color: var(--ink); }
+  .synth-headline.isgo { color: var(--go); }
+  .synth-sub { font-size: 0.84rem; color: var(--ink-soft); }
+  .synth-chips { display:flex; gap:16px; flex-wrap:wrap; font-size:0.85rem; margin-top:3px; padding-top:7px; border-top:1px solid var(--line); }
+  .synth-chips b.go { color: var(--go); }
+  .synth-chips b.nogo { color: var(--nogo); }
+  .synth-chips b.unk { color: var(--unk); }
   .group-h { font-size: 1.0rem; font-weight: 700; margin: 18px 2px 10px; display:flex; align-items:baseline; gap:10px; }
   .group-h .gsub { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
@@ -758,15 +762,35 @@ function render() {
   const results = evaluateAll(state);
   const counts = { go: 0, nogo: 0, unk: 0 };
   results.forEach(r => counts[r.verdict]++);
+  // ---- brief plain-language synthesis ----
+  const goNames = results.filter(r => r.verdict === 'go').map(r => r.trial.name);
+  const anyData = counts.nogo > 0 || counts.go > 0;   // near-empty form => everything unk, nogo 0
+  const allNeeds = [];
+  results.filter(r => r.verdict === 'unk').forEach(r => needsList(r.rows).forEach(n => { if (!allNeeds.includes(n)) allNeeds.push(n); }));
+  let headline, sub, isgo = false;
+  if (!anyData) {
+    headline = 'Enter patient data to assess eligibility'; sub = '';
+  } else if (counts.go > 0) {
+    isgo = true;
+    headline = 'Meets criteria for ' + goNames.join(', ');
+    const bits = ['not eligible for ' + counts.nogo + ' trial' + (counts.nogo !== 1 ? 's' : '')];
+    if (counts.unk > 0) bits.push(counts.unk + ' pending' + (allNeeds.length ? ' (need ' + allNeeds.slice(0,2).join(', ') + ')' : ''));
+    sub = 'Otherwise ' + bits.join('; ') + '.';
+  } else if (counts.unk > 0) {
+    headline = 'No trial fully met — ' + counts.unk + ' pending more data';
+    sub = allNeeds.length ? 'Need: ' + allNeeds.slice(0,3).join(', ') + '.' : '';
+  } else {
+    headline = 'Does not meet criteria for any of the ' + results.length + ' trials'; sub = '';
+  }
   document.getElementById('summary').innerHTML =
-    '<span><b class="go">' + counts.go + '</b> meets criteria</span>' +
-    '<span><b class="nogo">' + counts.nogo + '</b> not eligible</span>' +
-    '<span><b class="unk">' + counts.unk + '</b> insufficient data</span>' +
-    (counts.go > 0
-      ? '<span style="color:var(--ink-soft)">Meets criteria for: ' +
-        results.filter(r => r.verdict==='go').map(r => '<b>' + r.trial.name + '</b>').join(', ') + '</span>'
-      : '') +
-    (badInputs > 0 ? '<span class="summary-warn">⚠ ' + badInputs + ' value(s) out of range</span>' : '');
+    '<div class="synth-headline' + (isgo ? ' isgo' : '') + '">' + headline + '</div>' +
+    (sub ? '<div class="synth-sub">' + sub + '</div>' : '') +
+    '<div class="synth-chips">' +
+      '<span><b class="go">' + counts.go + '</b> meets</span>' +
+      '<span><b class="nogo">' + counts.nogo + '</b> not eligible</span>' +
+      '<span><b class="unk">' + counts.unk + '</b> insufficient</span>' +
+      (badInputs > 0 ? '<span class="summary-warn">⚠ ' + badInputs + ' out of range</span>' : '') +
+    '</div>';
 
   const container = document.getElementById('results');
   container.innerHTML = '';
