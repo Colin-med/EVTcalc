@@ -220,9 +220,6 @@
   .btn-share { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink); border-radius: 8px; cursor: pointer; font-size: 0.88rem; font-weight: 600; font-family: inherit; }
   .btn-share:hover { background: #d6e8f8; }
   .share-note { font-size: 0.72rem; color: var(--ink-soft); margin-top: 6px; text-align: center; }
-  .btn-activate { display: block; width: 100%; margin-top: 9px; padding: 12px; border-radius: 8px; text-align: center;
-    text-decoration: none; background: #0b3d66; color: #fff; font-weight: 700; font-size: 0.9rem; }
-  .btn-activate:hover { background: #0a2f50; }
 
   /* ---------- mobile / touch ---------- */
   @media (max-width: 640px) {
@@ -342,7 +339,6 @@
     <button class="btn-reset" id="resetBtn">Reset all fields</button>
     <button class="btn-share" id="shareBtn">🔗 Copy shareable case link</button>
     <div class="share-note" id="shareNote">Encodes the clinical values only — no name, MRN, or identifiers.</div>
-    <a class="btn-activate" id="activateLink" href="activate/" target="_blank" rel="noopener">🚨 Send to activation board →</a>
   </div>
 
   <!-- ============ RESULTS ============ -->
@@ -981,10 +977,6 @@ document.getElementById('shareBtn').addEventListener('click',async()=>{
   try { await navigator.clipboard.writeText(url); note.textContent='✓ Link copied to clipboard'; }
   catch(e){ location.hash = hash; note.textContent='Link is in the address bar — copy it to share.'; }
   setTimeout(()=>{ note.textContent='Encodes the clinical values only — no name, MRN, or identifiers.'; },3500);
-});
-
-document.getElementById('activateLink').addEventListener('click', function(){
-  this.href = 'activate/?case=' + encodeURIComponent(buildShareHash());
 });
 
 initSegs();
