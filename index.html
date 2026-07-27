@@ -207,6 +207,11 @@
   .calc-row:last-of-type { border-bottom: none; }
   .calc-row span { flex: 1; }
   .calc-row select { width: auto; min-width: 60px; padding: 5px 6px; font-size: 0.82rem; }
+  .nih-item { padding: 8px 0; border-bottom: 1px solid #eef1f4; }
+  .nih-item:last-of-type { border-bottom: none; }
+  .nih-q { font-size: 0.82rem; font-weight: 600; }
+  .nih-hint { font-weight: 400; color: var(--ink-soft); font-size: 0.75rem; }
+  .nih-item select { width: 100%; margin-top: 5px; padding: 8px; font-size: 0.82rem; border-radius: 6px; }
   .calc-check { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; padding: 5px 0; cursor: pointer; border-bottom: 1px solid #eef1f4; }
   .calc-check input { width: 16px; height: 16px; }
   .calc-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); font-size: 0.86rem; }
@@ -885,22 +890,24 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 });
 
 // ================= built-in calculators =================
+const ARM_OPTS = [[0,'No drift — holds position 10 s'],[1,'Drift — drifts down but does not hit bed'],[2,'Some effort against gravity — falls to bed'],[3,'No effort against gravity — limb falls'],[4,'No movement']];
+const LEG_OPTS = [[0,'No drift — holds position 5 s'],[1,'Drift — falls by 5 s but not to bed'],[2,'Some effort against gravity — falls to bed'],[3,'No effort against gravity — falls immediately'],[4,'No movement']];
 const NIHSS_ITEMS = [
-  ['1a Level of consciousness', [0,1,2,3]],
-  ['1b LOC questions', [0,1,2]],
-  ['1c LOC commands', [0,1,2]],
-  ['2 Best gaze', [0,1,2]],
-  ['3 Visual fields', [0,1,2,3]],
-  ['4 Facial palsy', [0,1,2,3]],
-  ['5a Left arm motor', [0,1,2,3,4]],
-  ['5b Right arm motor', [0,1,2,3,4]],
-  ['6a Left leg motor', [0,1,2,3,4]],
-  ['6b Right leg motor', [0,1,2,3,4]],
-  ['7 Limb ataxia', [0,1,2]],
-  ['8 Sensory', [0,1,2]],
-  ['9 Best language', [0,1,2,3]],
-  ['10 Dysarthria', [0,1,2]],
-  ['11 Extinction / inattention', [0,1,2]],
+  {q:'1a. Level of consciousness', opts:[[0,'Alert — keenly responsive'],[1,'Drowsy — rouses to minor stimulation'],[2,'Obtunded — needs repeated/strong stimulation'],[3,'Unresponsive — reflex movement only or flaccid']]},
+  {q:'1b. LOC questions', hint:'Ask the current month and their age', opts:[[0,'Both correct'],[1,'One correct (or intubated / severe dysarthria)'],[2,'Neither correct (or aphasic / stuporous)']]},
+  {q:'1c. LOC commands', hint:'Open & close eyes, then grip & release hand', opts:[[0,'Both tasks correct'],[1,'One task correct'],[2,'Neither task correct']]},
+  {q:'2. Best gaze', hint:'Horizontal eye movement', opts:[[0,'Normal'],[1,'Partial gaze palsy in one or both eyes'],[2,'Forced deviation / total gaze paresis']]},
+  {q:'3. Visual fields', opts:[[0,'No visual loss'],[1,'Partial hemianopia'],[2,'Complete hemianopia'],[3,'Bilateral hemianopia / cortical blindness']]},
+  {q:'4. Facial palsy', opts:[[0,'Normal, symmetric'],[1,'Minor — flattened nasolabial fold, uneven smile'],[2,'Partial — total/near-total lower-face paralysis'],[3,'Complete — upper + lower face, one or both sides']]},
+  {q:'5a. Left arm motor', hint:'Extend 90° (sitting) or 45° (supine) × 10 s', opts:ARM_OPTS},
+  {q:'5b. Right arm motor', hint:'Extend 90° (sitting) or 45° (supine) × 10 s', opts:ARM_OPTS},
+  {q:'6a. Left leg motor', hint:'Raise leg 30° (supine) × 5 s', opts:LEG_OPTS},
+  {q:'6b. Right leg motor', hint:'Raise leg 30° (supine) × 5 s', opts:LEG_OPTS},
+  {q:'7. Limb ataxia', hint:'Finger-to-nose & heel-to-shin', opts:[[0,'Absent'],[1,'Present in one limb'],[2,'Present in two limbs']]},
+  {q:'8. Sensory', hint:'Pinprick', opts:[[0,'Normal'],[1,'Mild–moderate loss — pinprick duller on affected side'],[2,'Severe/total loss — unaware of being touched']]},
+  {q:'9. Best language', opts:[[0,'Normal — no aphasia'],[1,'Mild–moderate aphasia'],[2,'Severe aphasia — fragmentary, much inference needed'],[3,'Mute / global aphasia — no usable speech']]},
+  {q:'10. Dysarthria', opts:[[0,'Normal'],[1,'Mild–moderate — slurs some words'],[2,'Severe — unintelligible or mute']]},
+  {q:'11. Extinction / inattention', hint:'Neglect', opts:[[0,'No abnormality'],[1,'Inattention/extinction in one modality'],[2,'Profound hemi-inattention or >1 modality']]},
 ];
 const ASPECTS_REGIONS = ['Caudate','Lentiform nucleus','Internal capsule','Insular ribbon','M1','M2','M3','M4','M5','M6'];
 const PCASPECTS_REGIONS = [['Left thalamus',1],['Right thalamus',1],['Left cerebellum',1],['Right cerebellum',1],['Left PCA territory',1],['Right PCA territory',1],['Midbrain',2],['Pons',2]];
@@ -908,7 +915,11 @@ const PCASPECTS_REGIONS = [['Left thalamus',1],['Right thalamus',1],['Left cereb
 function buildNihss() {
   const panel = document.getElementById('nihssCalc');
   panel.innerHTML =
-    NIHSS_ITEMS.map((it,i) => '<div class="calc-row"><span>'+it[0]+'</span><select data-i="'+i+'">'+it[1].map(v=>'<option value="'+v+'">'+v+'</option>').join('')+'</select></div>').join('') +
+    '<div style="font-size:0.76rem;color:var(--ink-soft);margin-bottom:6px;">Pick the description that fits for each item — the score is added up automatically.</div>' +
+    NIHSS_ITEMS.map((it,i) =>
+      '<div class="nih-item"><div class="nih-q">' + it.q + (it.hint ? ' <span class="nih-hint">— ' + it.hint + '</span>' : '') + '</div>' +
+      '<select data-i="' + i + '">' + it.opts.map(o => '<option value="' + o[0] + '">' + o[0] + ' — ' + o[1] + '</option>').join('') + '</select></div>'
+    ).join('') +
     '<div class="calc-foot"><span>Total NIHSS: <span class="tot" id="nihssTotal">0</span> / 42</span><button type="button" class="calc-use" id="nihssUse">Use score</button></div>';
   const recompute = () => { let t=0; panel.querySelectorAll('select').forEach(s=>t+=Number(s.value)); document.getElementById('nihssTotal').textContent=t; };
   panel.querySelectorAll('select').forEach(s=>s.addEventListener('change',recompute));
