@@ -7,6 +7,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- SEO -->
+<meta name="description" content="EVTcalc checks a stroke patient's mechanical thrombectomy (EVT) eligibility against the landmark anterior- and posterior-circulation trials — DAWN, DEFUSE-3, SELECT2, ANGEL-ASPECT, ATTENTION, BAOCHE and more — with full criterion-level transparency.">
+<meta name="keywords" content="thrombectomy, EVT, endovascular therapy, acute ischemic stroke, LVO, eligibility, DAWN, DEFUSE-3, SELECT2, ANGEL-ASPECT, ATTENTION, BAOCHE, ASPECTS, NIHSS">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#3e90d4">
+<link rel="canonical" href="https://evtcalc.io/">
+<!-- Favicon (inline Columbia-blue mark) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='22'%20fill='%233e90d4'/%3E%3Cg%20fill='none'%20stroke='%23ffffff'%20stroke-width='8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M50%2094%20C44%2084%2056%2080%2050%2070%20C45%2062%2055%2058%2050%2050'/%3E%3Cpath%20d='M50%2052%20C40%2046%2030%2046%2022%2038'/%3E%3Cpath%20d='M50%2051%20C44%2040%2038%2034%2033%2026'/%3E%3Cpath%20d='M50%2051%20C50%2040%2050%2032%2050%2024'/%3E%3Cpath%20d='M50%2051%20C56%2040%2062%2034%2067%2026'/%3E%3Cpath%20d='M50%2052%20C60%2046%2070%2046%2078%2038'/%3E%3C/g%3E%3C/svg%3E">
+<!-- Open Graph / Twitter -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="EVTcalc">
+<meta property="og:title" content="EVTcalc — Thrombectomy Trial Eligibility">
+<meta property="og:description" content="Check EVT candidacy across the landmark anterior- and posterior-circulation thrombectomy trials, with every criterion shown.">
+<meta property="og:url" content="https://evtcalc.io/">
+<meta property="og:image" content="https://evtcalc.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="EVTcalc — Thrombectomy Trial Eligibility">
+<meta name="twitter:description" content="Check EVT candidacy across the landmark anterior- and posterior-circulation thrombectomy trials, with every criterion shown.">
+<meta name="twitter:image" content="https://evtcalc.io/og-image.png">
 <style>
   :root {
     --bg: #f6f8fa;
@@ -93,12 +115,13 @@
   .trial > summary::-webkit-details-marker { display: none; }
   .trial > summary:hover { background: #fafcfe; }
   .trial[open] > summary { border-bottom: 1px solid var(--line); }
-  .summ-left { min-width: 0; }
+  .summ-left { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .summ-left .tname { font-weight: 700; font-size: 0.98rem; }
   .summ-left .tname .caret { color: var(--ink-soft); font-size: 0.7rem; margin-right: 5px; display: inline-block; transition: transform 0.12s; }
   .trial[open] > summary .caret { transform: rotate(90deg); }
   .summ-left .tsub { font-size: 0.74rem; color: var(--ink-soft); margin-top: 1px; }
   .summ-left .treason { font-size: 0.76rem; color: var(--nogo); margin-top: 2px; }
+  .summ-left .tneeds { font-size: 0.76rem; color: var(--unk); margin-top: 2px; }
   .trial-cite { font-size: 0.76rem; color: var(--ink-soft); padding: 8px 14px 0; }
   .trial-cite a { color: var(--link); text-decoration: none; }
   .trial-cite a:hover { text-decoration: underline; }
@@ -124,6 +147,14 @@
   footer a { color: var(--link); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
   .disclaimer { background: var(--miss-bg); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+  .about-panel { max-width: 720px; margin: 0 auto 16px; padding: 0 22px; }
+  .about-panel details { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 22px; }
+  .about-panel summary { font-size: 1.02rem; font-weight: 700; letter-spacing: -0.01em; cursor: pointer; color: var(--ink); }
+  .about-panel summary:hover { color: var(--accent); }
+  .about-panel details[open] summary { margin-bottom: 10px; }
+  .about-panel p { font-size: 0.86rem; color: var(--ink-soft); margin-bottom: 9px; }
+  .about-panel .vk { display: inline-block; font-weight: 700; }
+  .about-panel .vk.go { color: var(--go); } .about-panel .vk.unk { color: var(--unk); } .about-panel .vk.nogo { color: var(--nogo); }
 
   /* ---------- contact ---------- */
   .contact-section { max-width: 720px; margin: 8px auto 0; padding: 0 22px; }
@@ -306,6 +337,16 @@
     </form>
   </details>
 </section>
+
+<div class="about-panel">
+  <details>
+    <summary>About &amp; methodology</summary>
+    <p>EVTcalc lets you enter a patient's clinical and CT/CTA findings once and see, at a glance, which landmark mechanical-thrombectomy trials that patient would have qualified for. It covers the early-window trials (MR CLEAN, ESCAPE, SWIFT PRIME, EXTEND-IA, REVASCAT), the extended-window trials (DEFUSE-3, DAWN), the large-core trials (RESCUE-Japan LIMIT, SELECT2, ANGEL-ASPECT), and the posterior-circulation trials (ATTENTION, BAOCHE).</p>
+    <p>Each trial is evaluated criterion by criterion against its published inclusion/exclusion rules. Every criterion resolves to pass, fail, or missing, and the trial verdict follows from those: <span class="vk nogo">Not eligible</span> if any criterion fails, <span class="vk unk">Insufficient data</span> if nothing fails but a needed value is missing, and <span class="vk go">Meets criteria</span> only when every criterion passes. To reduce clutter, trials the patient doesn't qualify for collapse to a one-line row showing the disqualifying reason; click any row to expand its full checklist.</p>
+    <p>Criteria are simplified in places, and those simplifications are noted on the individual trial cards (for example, this tool assumes CT/CTA-based selection, so RESCUE-Japan LIMIT's MRI-dependent late window is not scored). Perfusion fields are optional — trials that genuinely need a core volume show "insufficient data" rather than a false verdict when perfusion is left blank. Always verify against the primary publication linked on each card before acting.</p>
+    <p><strong>EVTcalc is an independent educational tool and is not affiliated with, endorsed by, or connected to MDCalc.</strong></p>
+  </details>
+</div>
 
 <footer>
   <div class="disclaimer"><strong>Disclaimer:</strong> EVTcalc is an educational decision-support reference for qualified physicians. It reproduces published trial inclusion/exclusion criteria and does not replace clinical judgment, institutional protocols, or current AHA/ASA guidelines. Trial criteria are simplified where noted; always verify against the primary publication.</div>
@@ -495,12 +536,10 @@ const TRIALS = [
       { label: 'Occlusion: ICA (cervical/intracranial) / M1 (± tandem)', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
       { label: 'Large core: ASPECTS 3–5, or core ≥ 50 mL (CTP)', fn: s => {
           const a = num(s.aspects), core = pv(s,'coreVol');
+          if (a === null && core === null) return { s: 'missing' };   // enter ASPECTS to assess
           if (a !== null && a >= 3 && a <= 5) return { s: 'pass' };
           if (core !== null && core >= 50 && (a === null || a >= 3)) return { s: 'pass' };
-          if (a === null && core === null) return { s: 'missing' };
-          if (a !== null && (a < 3)) return { s: 'fail' };            // ASPECTS 0–2 excluded
-          if (a !== null && a > 5 && core === null && s.perfDone === 'yes') return { s: 'missing' };
-          if (a !== null && a > 5 && core === null) return { s: 'missing' };
+          // ASPECTS 0–2 excluded; ASPECTS ≥6 without a documented large core = not a large-core candidate
           return { s: 'fail' };
         } },
       { label: 'No significant mass effect / midline shift', fn: s => chk(need(s.massEffect), s.massEffect === 'no') },
@@ -520,14 +559,13 @@ const TRIALS = [
       { label: 'Occlusion: ICA terminus / M1', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
       { label: 'Core: ASPECTS 3–5, or core 70–100 mL if ASPECTS 0–2 or >5 (6–24 h)', fn: s => {
           const a = num(s.aspects), core = pv(s,'coreVol'), t = num(s.lkw);
-          if (a === null) return { s: 'missing' };
+          if (a === null) return { s: 'missing' };            // enter ASPECTS to assess
           if (a >= 3 && a <= 5) return { s: 'pass' };
-          if (core === null) return { s: 'missing' };
-          const band = core >= 70 && core <= 100;
-          if (a < 3) return { s: band ? 'pass' : 'fail' };
-          // ASPECTS > 5: qualifies only in the 6–24 h window with core 70–100 mL
-          if (t === null) return { s: 'missing' };
-          return { s: (band && t >= 6 && t <= 24) ? 'pass' : 'fail' };
+          const band = core !== null && core >= 70 && core <= 100;
+          if (a < 3) return { s: band ? 'pass' : 'fail' };    // ASPECTS 0–2 need core 70–100 mL
+          // ASPECTS >5: qualifies only in the 6–24 h window with core 70–100 mL; otherwise not a large-core candidate
+          if (band && t !== null && t >= 6 && t <= 24) return { s: 'pass' };
+          return { s: 'fail' };
         } },
       { label: 'No midline shift / herniation / ventricular effacement', fn: s => chk(need(s.massEffect), s.massEffect === 'no') },
       { label: 'No bilateral strokes / multiple occlusions', fn: s => chk(need(s.multiOcc), s.multiOcc === 'no') },
@@ -638,6 +676,29 @@ const GROUPS = [
 const BADGE = { go: 'MEETS CRITERIA', nogo: 'NOT ELIGIBLE', unk: 'INSUFFICIENT DATA' };
 const MARK = { pass: '✓', fail: '✗', missing: '·' };
 
+// Map a missing criterion's label to the concise data the clinician must obtain.
+function needFor(label) {
+  const l = label.toLowerCase();
+  if (l.includes('core') || l.includes('mismatch') || l.includes('rapid') || l.includes('perfusion')) return 'CT perfusion (core volume / mismatch)';
+  if (l.includes('pc-aspects')) return 'pc-ASPECTS';
+  if (l.includes('aspects')) return 'ASPECTS';
+  if (l.includes('hemorrhage')) return 'hemorrhage status';
+  if (l.includes('mass effect') || l.includes('midline') || l.includes('herniation') || l.includes('effacement')) return 'mass-effect / midline shift';
+  if (l.includes('tpa') || l.includes('thrombolytic')) return 'IV thrombolytic status';
+  if (l.includes('mrs')) return 'pre-stroke mRS';
+  if (l.includes('occlusion')) return 'occlusion site';
+  if (l.includes('multi-territory') || l.includes('bilateral')) return 'multi-territory occlusion status';
+  if (l.includes('nihss')) return 'NIHSS';
+  if (l.includes('age')) return 'age';
+  if (l.includes('window') || l.includes('onset') || l.includes('known well')) return 'time from last known well';
+  return null;
+}
+function needsList(rows) {
+  const set = [];
+  rows.filter(r => r.s === 'missing').forEach(r => { const n = needFor(r.label); if (n && !set.includes(n)) set.push(n); });
+  return set;
+}
+
 function render() {
   readInputs();
   updateConditionalFields();
@@ -680,12 +741,14 @@ function render() {
       ).join('');
       const reason = (r.verdict === 'nogo')
         ? (r.rows.find(row => row.s === 'fail') || {}).label : null;
+      const needs = (r.verdict === 'unk') ? needsList(r.rows) : [];
       card.innerHTML =
         '<summary>' +
           '<span class="summ-left">' +
             '<span class="tname"><span class="caret">▸</span>' + r.trial.name + '</span>' +
             '<span class="tsub">' + r.trial.sub + '</span>' +
             (reason ? '<span class="treason">✗ ' + reason + '</span>' : '') +
+            (needs.length ? '<span class="tneeds">Needs: ' + needs.join(', ') + '</span>' : '') +
           '</span>' +
           '<span class="badge ' + r.verdict + '">' + BADGE[r.verdict] + '</span>' +
         '</summary>' +
