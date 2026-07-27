@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#3e90d4">
 <link rel="canonical" href="https://evtcalc.io/">
 <!-- Favicon (inline Columbia-blue mark) -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='22'%20fill='%233e90d4'/%3E%3Cg%20fill='none'%20stroke='%23ffffff'%20stroke-width='8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M50%2094%20C44%2084%2056%2080%2050%2070%20C45%2062%2055%2058%2050%2050'/%3E%3Cpath%20d='M50%2052%20C40%2046%2030%2046%2022%2038'/%3E%3Cpath%20d='M50%2051%20C44%2040%2038%2034%2033%2026'/%3E%3Cpath%20d='M50%2051%20C50%2040%2050%2032%2050%2024'/%3E%3Cpath%20d='M50%2051%20C56%2040%2062%2034%2067%2026'/%3E%3Cpath%20d='M50%2052%20C60%2046%2070%2046%2078%2038'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2222%22%20fill%3D%22%233e90d4%22%2F%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M50%2022%20C45%2016%2035%2016%2031%2022%20C22%2019%2015%2027%2019%2034%20C11%2037%2011%2048%2019%2051%20C15%2059%2022%2068%2031%2064%20C35%2071%2045%2071%2050%2065%20C55%2071%2065%2071%2069%2064%20C78%2068%2085%2059%2081%2051%20C89%2048%2089%2037%2081%2034%20C85%2027%2078%2019%2069%2022%20C65%2016%2055%2016%2050%2022%20Z%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%233e90d4%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M50%2023%20L50%2064%22%2F%3E%20%3Cpath%20d%3D%22M50%2035%20C42%2035%2040%2043%2047%2046%22%2F%3E%20%3Cpath%20d%3D%22M50%2035%20C58%2035%2060%2043%2053%2046%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <!-- Open Graph / Twitter -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="EVTcalc">
@@ -63,7 +63,7 @@
   header h1 { font-size: 1.4rem; letter-spacing: -0.01em; color: var(--accent); font-weight: 700; }
   header .tag { color: var(--ink-soft); font-size: 0.85rem; }
   .wrap { display: grid; grid-template-columns: 340px 1fr; gap: 20px; padding: 20px 22px; max-width: 1500px; margin: 0 auto; }
-  @media (max-width: 950px) { .wrap { grid-template-columns: 1fr; } .form-col { position: static !important; } }
+  @media (max-width: 950px) { .wrap { grid-template-columns: 1fr; } .form-col { position: static !important; max-height: none; overflow: visible; } }
 
   /* ---------- form ---------- */
   .form-col { position: sticky; top: 14px; align-self: start; max-height: calc(100vh - 28px); overflow-y: auto; }
@@ -187,6 +187,43 @@
   .contact-status.err { display: block; background: var(--nogo-bg); color: var(--nogo); }
   .contact-note { grid-column: 1 / -1; font-size: 0.76rem; color: var(--ink-soft); }
   @media (max-width: 560px) { .contact-form { grid-template-columns: 1fr; } }
+
+  /* ---------- input validation ---------- */
+  .field input.invalid { border-color: var(--nogo); background: var(--nogo-bg); }
+  .field .rangewarn { display: none; font-size: 0.72rem; color: var(--nogo); margin-top: 3px; }
+  .field input.invalid ~ .rangewarn { display: block; }
+  .summary-warn { color: var(--nogo); font-size: 0.85rem; }
+
+  /* ---------- mobile / touch ---------- */
+  @media (max-width: 640px) {
+    header { padding: 11px 15px; gap: 5px; }
+    header h1 { font-size: 1.22rem; }
+    header .tag { font-size: 0.78rem; line-height: 1.3; }
+    .wrap { padding: 12px 13px; gap: 14px; }
+    .panel h2 { padding: 11px 13px 8px; }
+    .panel .fields { padding: 11px 13px 13px; gap: 13px; }
+    .field label { font-size: 0.88rem; }
+    /* 16px inputs prevent iOS auto-zoom; taller targets for touch */
+    .field input[type="number"], .field select { font-size: 16px; padding: 11px 11px; border-radius: 8px; }
+    .seg button { padding: 12px 4px; font-size: 0.92rem; }
+    .btn-reset { padding: 13px; font-size: 0.95rem; }
+    /* keep the verdict tally visible while scrolling results */
+    .summary-strip { position: sticky; top: 0; z-index: 6; font-size: 0.9rem; gap: 8px 16px; padding: 11px 14px;
+      box-shadow: 0 2px 6px rgba(20,40,70,0.06); }
+    .group-h { font-size: 0.96rem; margin: 15px 2px 9px; }
+    .group-h .gsub { display: block; margin-top: 2px; }
+    .grid { grid-template-columns: 1fr; gap: 12px; }
+    .trial > summary { padding: 13px; }
+    .summ-left .tname { font-size: 1.02rem; }
+    .crit-list li { padding: 6px 13px; font-size: 0.87rem; }
+    .consent-panel, .contact-section, .about-panel { padding-left: 13px; padding-right: 13px; }
+    .contact-card summary, .about-panel summary { font-size: 1.05rem; }
+    footer { padding: 16px 14px; }
+  }
+  @media (max-width: 380px) {
+    header .tag { display: none; }
+    .field input[type="number"], .field select { font-size: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -667,6 +704,21 @@ function readInputs() {
   selIds.forEach(id => { state[id] = document.getElementById(id).value || null; });
 }
 
+// Flag physiologically-impossible numeric entries (typo guard) without altering them.
+const NUM_RANGES = { age:[0,120], nihss:[0,42], lkw:[0,120], aspects:[0,10], pcaspects:[0,10], coreVol:[0,400], mmRatio:[0,50] };
+function validateInputs() {
+  let bad = 0;
+  for (const id in NUM_RANGES) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const v = el.value; const [lo, hi] = NUM_RANGES[id];
+    const invalid = v !== '' && (isNaN(Number(v)) || Number(v) < lo || Number(v) > hi);
+    el.classList.toggle('invalid', invalid);
+    if (invalid) bad++;
+  }
+  return bad;
+}
+
 const GROUPS = [
   { key: 'early', title: 'Early window (0–6 h era trials)', sub: 'MR CLEAN · ESCAPE · SWIFT PRIME · EXTEND-IA · REVASCAT' },
   { key: 'late',  title: 'Extended window (6–24 h)', sub: 'DEFUSE-3 · DAWN' },
@@ -702,6 +754,7 @@ function needsList(rows) {
 function render() {
   readInputs();
   updateConditionalFields();
+  const badInputs = validateInputs();
   const results = evaluateAll(state);
   const counts = { go: 0, nogo: 0, unk: 0 };
   results.forEach(r => counts[r.verdict]++);
@@ -712,7 +765,8 @@ function render() {
     (counts.go > 0
       ? '<span style="color:var(--ink-soft)">Meets criteria for: ' +
         results.filter(r => r.verdict==='go').map(r => '<b>' + r.trial.name + '</b>').join(', ') + '</span>'
-      : '');
+      : '') +
+    (badInputs > 0 ? '<span class="summary-warn">⚠ ' + badInputs + ' value(s) out of range</span>' : '');
 
   const container = document.getElementById('results');
   container.innerHTML = '';
