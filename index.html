@@ -144,6 +144,30 @@
   .resultnote { padding: 8px 14px; font-size: 0.78rem; line-height: 1.4; }
   .resultnote.pos { color: var(--go); background: var(--go-bg); }
   .resultnote.neg { color: var(--nogo); background: var(--nogo-bg); }
+
+  /* ---- decluttered results ---- */
+  .results-empty { text-align: center; color: var(--ink-soft); font-size: 0.95rem; padding: 52px 24px;
+    background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); }
+  .others { margin-top: 4px; }
+  .others > summary { list-style: none; cursor: pointer; padding: 13px 16px; background: var(--card);
+    border: 1px solid var(--line); border-radius: var(--radius); font-size: 0.9rem; font-weight: 600;
+    color: var(--ink-soft); display: flex; align-items: center; gap: 9px; }
+  .others > summary::-webkit-details-marker { display: none; }
+  .others > summary:hover { color: var(--accent); background: #fafcfe; }
+  .others > summary .chev { display: inline-block; transition: transform .12s; font-size: 0.72rem; color: var(--ink-soft); }
+  .others[open] > summary .chev { transform: rotate(90deg); }
+  .others[open] > summary { margin-bottom: 13px; }
+  .trial-note { padding: 8px 14px 12px; font-size: 0.76rem; color: var(--ink-soft); border-top: 1px dashed var(--line); }
+
+  /* ---- visual polish ---- */
+  .panel, .card, .consent-panel, .about-panel details, .contact-card { box-shadow: 0 1px 2px rgba(16,35,63,0.035); }
+  .trial { box-shadow: 0 1px 2px rgba(16,35,63,0.04); transition: box-shadow .15s ease, border-color .15s ease; }
+  .trial[open] { box-shadow: 0 3px 12px rgba(16,35,63,0.08); }
+  .trial.applic { box-shadow: 0 2px 12px rgba(14,122,61,0.10); }
+  .group-h { margin: 24px 2px 12px; font-size: 1.02rem; }
+  .grid { gap: 15px; }
+  .summary-strip { padding: 15px 18px; box-shadow: 0 2px 12px rgba(16,35,63,0.05); }
+  .synth-headline { font-size: 1.08rem; }
   .crit-list { list-style: none; padding: 6px 0; }
   .crit-list li { display: flex; gap: 9px; padding: 4px 14px; font-size: 0.84rem; align-items: baseline; }
   .crit-list .mark { width: 15px; flex-shrink: 0; font-weight: 700; text-align: center; }
@@ -867,6 +891,37 @@ function needsList(rows) {
   return set;
 }
 
+function buildTrialCard(r) {
+  const applicable = r.verdict !== 'nogo';           // meets criteria OR insufficient data
+  const card = document.createElement('details');
+  card.className = 'trial' + (r.verdict === 'go' ? ' applic' : '') + (r._near ? ' nearmiss' : '');
+  if (applicable) card.open = true;                  // expand only applicable trials
+  const rowsHtml = r.rows.map(row =>
+    '<li class="' + row.s + '"><span class="mark">' + MARK[row.s] + '</span><span class="ctext">' + row.label + '</span></li>'
+  ).join('');
+  const failLabels = (r.verdict === 'nogo') ? r._fails.map(f => f.label) : [];
+  const needs = (r.verdict === 'unk') ? needsList(r.rows) : [];
+  card.innerHTML =
+    '<summary>' +
+      '<span class="summ-left">' +
+        '<span class="tname"><span class="caret">▸</span>' + r.trial.name +
+          (r.trial.result ? '<span class="respill ' + (r.trial.result === 'positive' ? 'pos' : 'neg') + '">' + (r.trial.result === 'positive' ? 'POSITIVE' : 'NEGATIVE') + '</span>' : '') +
+        '</span>' +
+        '<span class="tsub">' + r.trial.sub + '</span>' +
+        failLabels.map(l => '<span class="treason">✗ ' + l + '</span>').join('') +
+        (r._near ? '<span class="near-chip">◐ 1 criterion away</span>' : '') +
+        (needs.length ? '<span class="tneeds">Needs: ' + needs.join(', ') + '</span>' : '') +
+      '</span>' +
+      '<span class="badge ' + r.verdict + '">' + BADGE[r.verdict] + '</span>' +
+    '</summary>' +
+    '<ul class="crit-list">' + rowsHtml + '</ul>' +
+    (r.trial.resultNote ? '<div class="resultnote ' + (r.trial.result === 'positive' ? 'pos' : 'neg') + '">' + (r.trial.result === 'positive' ? '✓ ' : '⚠ ') + r.trial.resultNote + '</div>' : '') +
+    (r.trial.note ? '<div class="trial-note">' + r.trial.note + '</div>' : '') +
+    '<div class="trial-cite"><a href="' + r.trial.ref.url + '" target="_blank" rel="noopener">' + r.trial.ref.label + '</a></div>' +
+    '<div style="height:10px"></div>';
+  return card;
+}
+
 function render() {
   readInputs();
   updateConditionalFields();
@@ -878,7 +933,10 @@ function render() {
   results.forEach(r => {
     r._fails = r.rows.filter(x => x.s === 'fail');
     r._miss  = r.rows.filter(x => x.s === 'missing');
-    r._near  = r.verdict === 'nogo' && r._fails.length === 1 && r._miss.length === 0;
+    // near-miss = fails exactly one criterion (all data present) AND that criterion is a
+    // tweakable threshold, not a categorical occlusion-site mismatch.
+    r._near  = r.verdict === 'nogo' && r._fails.length === 1 && r._miss.length === 0
+               && needFor(r._fails[0].label) !== 'occlusion site';
   });
   const nearMisses = results.filter(r => r._near);
   const barrierCount = {};
@@ -942,52 +1000,38 @@ function render() {
   const container = document.getElementById('results');
   container.innerHTML = '';
 
-  // Order groups so those with an applicable (meets / insufficient-data) trial float to the top.
-  const groupHasApplicable = g => results.some(r => r.trial.group === g.key && r.verdict !== 'nogo');
-  const orderedGroups = GROUPS.map((g, i) => ({ g, i, applic: groupHasApplicable(g) }))
-    .sort((a, b) => (a.applic === b.applic) ? a.i - b.i : (a.applic ? -1 : 1))
-    .map(x => x.g);
+  if (!anyData) {
+    container.innerHTML = '<div class="results-empty">Enter the patient details on the left to see which trials apply.</div>';
+    return;
+  }
 
-  orderedGroups.forEach(g => {
-    const groupResults = results.filter(r => r.trial.group === g.key);
+  // "In play" = meets criteria, insufficient data, or a near-miss. Plain not-eligible trials are tucked away.
+  const inPlay = t => t.verdict !== 'nogo' || t._near;
+  GROUPS.forEach(g => {
+    const groupResults = results.filter(t => t.trial.group === g.key && inPlay(t));
+    if (!groupResults.length) return;
     const h = document.createElement('div');
     h.className = 'group-h';
     h.innerHTML = g.title + ' <span class="gsub">' + g.sub + '</span>';
     container.appendChild(h);
     const grid = document.createElement('div');
     grid.className = 'grid';
-    groupResults.forEach(r => {
-      const applicable = r.verdict !== 'nogo';           // meets criteria OR insufficient data
-      const card = document.createElement('details');
-      card.className = 'trial' + (r.verdict === 'go' ? ' applic' : '') + (r._near ? ' nearmiss' : '');
-      if (applicable) card.open = true;                  // expand only applicable trials
-      const rowsHtml = r.rows.map(row =>
-        '<li class="' + row.s + '"><span class="mark">' + MARK[row.s] + '</span><span class="ctext">' + row.label + '</span></li>'
-      ).join('');
-      const failLabels = (r.verdict === 'nogo') ? r._fails.map(f => f.label) : [];
-      const needs = (r.verdict === 'unk') ? needsList(r.rows) : [];
-      card.innerHTML =
-        '<summary>' +
-          '<span class="summ-left">' +
-            '<span class="tname"><span class="caret">▸</span>' + r.trial.name +
-              (r.trial.result ? '<span class="respill ' + (r.trial.result === 'positive' ? 'pos' : 'neg') + '">' + (r.trial.result === 'positive' ? 'POSITIVE' : 'NEGATIVE') + '</span>' : '') +
-            '</span>' +
-            '<span class="tsub">' + r.trial.sub + '</span>' +
-            failLabels.map(l => '<span class="treason">✗ ' + l + '</span>').join('') +
-            (r._near ? '<span class="near-chip">◐ 1 criterion away</span>' : '') +
-            (needs.length ? '<span class="tneeds">Needs: ' + needs.join(', ') + '</span>' : '') +
-          '</span>' +
-          '<span class="badge ' + r.verdict + '">' + BADGE[r.verdict] + '</span>' +
-        '</summary>' +
-        '<ul class="crit-list">' + rowsHtml + '</ul>' +
-        (r.trial.resultNote ? '<div class="resultnote ' + (r.trial.result === 'positive' ? 'pos' : 'neg') + '">' + (r.trial.result === 'positive' ? '✓ ' : '⚠ ') + r.trial.resultNote + '</div>' : '') +
-        (r.trial.note ? '<div style="padding:6px 14px 10px;font-size:0.76rem;color:var(--ink-soft);border-top:1px dashed var(--line);">' + r.trial.note + '</div>' : '') +
-        '<div class="trial-cite"><a href="' + r.trial.ref.url + '" target="_blank" rel="noopener">' + r.trial.ref.label + '</a></div>' +
-        '<div style="height:10px"></div>';
-      grid.appendChild(card);
-    });
+    groupResults.forEach(t => grid.appendChild(buildTrialCard(t)));
     container.appendChild(grid);
   });
+
+  // Collapsed "does not meet" section for the rest.
+  const others = results.filter(t => !inPlay(t));
+  if (others.length) {
+    const det = document.createElement('details');
+    det.className = 'others';
+    det.innerHTML = '<summary><span class="chev">▸</span>' + others.length + ' trial' + (others.length !== 1 ? 's' : '') + ' the patient does not meet</summary>';
+    const grid = document.createElement('div');
+    grid.className = 'grid others-grid';
+    others.forEach(t => grid.appendChild(buildTrialCard(t)));
+    det.appendChild(grid);
+    container.appendChild(det);
+  }
 }
 
 function renderRefs() {
