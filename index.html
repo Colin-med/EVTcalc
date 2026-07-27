@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVTcalc — Mechanical Thrombectomy Trial Eligibility</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --ink: #1a2332;
+    --ink-soft: #5b6b7f;
+    --line: #dfe5ec;
+    --accent: #3e90d4;        /* Columbia blue */
+    --accent-ink: #08375f;    /* deep text on Columbia-blue fills */
+    --accent-soft: #e6f2fb;
+    --link: #1f6fb0;          /* darker blue for small hyperlink text */
+    --go: #0e7a3d;
+    --go-bg: #e7f5ec;
+    --nogo: #b3261e;
+    --nogo-bg: #fbecea;
+    --unk: #8a6d1a;
+    --unk-bg: #fdf6e3;
+    --miss: #6b7684;
+    --miss-bg: #eef1f4;
+    --radius: 10px;
+    font-size: 15px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.45;
+  }
+  header {
+    background: #fff; border-bottom: 1px solid var(--line);
+    padding: 14px 22px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.4rem; letter-spacing: -0.01em; color: var(--accent); font-weight: 700; }
+  header .tag { color: var(--ink-soft); font-size: 0.85rem; }
+  .wrap { display: grid; grid-template-columns: 340px 1fr; gap: 20px; padding: 20px 22px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 950px) { .wrap { grid-template-columns: 1fr; } .form-col { position: static !important; } }
+
+  /* ---------- form ---------- */
+  .form-col { position: sticky; top: 14px; align-self: start; max-height: calc(100vh - 28px); overflow-y: auto; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; }
+  .panel h2 {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-soft);
+    padding: 10px 14px 8px; border-bottom: 1px solid var(--line);
+  }
+  .panel .fields { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 11px; }
+  .field label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 3px; }
+  .field .hint { font-weight: 400; color: var(--ink-soft); font-size: 0.78rem; }
+  .field input[type="number"], .field select {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px;
+    font-size: 0.92rem; background: #fff; color: var(--ink);
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .seg button {
+    flex: 1; padding: 7px 4px; background: #fff; border: none; cursor: pointer; font-size: 0.85rem;
+    color: var(--ink-soft); border-right: 1px solid var(--line);
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .subtle-note { font-size: 0.76rem; color: var(--ink-soft); margin-top: 3px; }
+  .perf-block { border-left: 3px solid var(--accent-soft); padding-left: 10px; display: flex; flex-direction: column; gap: 11px; }
+  .btn-reset {
+    width: 100%; padding: 9px; border: 1px solid var(--line); background: #fff; border-radius: 8px;
+    cursor: pointer; font-size: 0.88rem; color: var(--ink-soft);
+  }
+  .btn-reset:hover { background: var(--miss-bg); }
+
+  /* ---------- results ---------- */
+  .summary-strip {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 16px; margin-bottom: 16px; font-size: 0.95rem; display:flex; gap:18px; flex-wrap:wrap;
+  }
+  .summary-strip b.go { color: var(--go); }
+  .summary-strip b.nogo { color: var(--nogo); }
+  .summary-strip b.unk { color: var(--unk); }
+  .group-h { font-size: 1.0rem; font-weight: 700; margin: 18px 2px 10px; display:flex; align-items:baseline; gap:10px; }
+  .group-h .gsub { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
+  .trial {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+  }
+  .trial[open] { box-shadow: 0 1px 4px rgba(20,40,70,0.06); }
+  .trial.applic { border-color: #bfe0c9; }
+  .trial > summary { list-style: none; cursor: pointer; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .trial > summary::-webkit-details-marker { display: none; }
+  .trial > summary:hover { background: #fafcfe; }
+  .trial[open] > summary { border-bottom: 1px solid var(--line); }
+  .summ-left { min-width: 0; }
+  .summ-left .tname { font-weight: 700; font-size: 0.98rem; }
+  .summ-left .tname .caret { color: var(--ink-soft); font-size: 0.7rem; margin-right: 5px; display: inline-block; transition: transform 0.12s; }
+  .trial[open] > summary .caret { transform: rotate(90deg); }
+  .summ-left .tsub { font-size: 0.74rem; color: var(--ink-soft); margin-top: 1px; }
+  .summ-left .treason { font-size: 0.76rem; color: var(--nogo); margin-top: 2px; }
+  .trial-cite { font-size: 0.76rem; color: var(--ink-soft); padding: 8px 14px 0; }
+  .trial-cite a { color: var(--link); text-decoration: none; }
+  .trial-cite a:hover { text-decoration: underline; }
+  .badge { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; padding: 4px 9px; border-radius: 20px; white-space: nowrap; }
+  .badge.go { background: var(--go-bg); color: var(--go); }
+  .badge.nogo { background: var(--nogo-bg); color: var(--nogo); }
+  .badge.unk { background: var(--unk-bg); color: var(--unk); }
+  .crit-list { list-style: none; padding: 6px 0; }
+  .crit-list li { display: flex; gap: 9px; padding: 4px 14px; font-size: 0.84rem; align-items: baseline; }
+  .crit-list .mark { width: 15px; flex-shrink: 0; font-weight: 700; text-align: center; }
+  .crit-list .pass .mark { color: var(--go); }
+  .crit-list .fail .mark { color: var(--nogo); }
+  .crit-list .missing .mark { color: var(--miss); }
+  .crit-list .fail { background: var(--nogo-bg); }
+  .crit-list .missing .ctext { color: var(--miss); }
+  .crit-list .creq { color: var(--ink-soft); }
+  .consent-panel { background: var(--unk-bg); border: 1px solid #ead9a0; border-radius: var(--radius); padding: 12px 16px; margin-top: 12px; font-size: 0.86rem; }
+  .consent-panel summary { cursor: pointer; font-weight: 700; font-size: 0.88rem; }
+  .consent-panel ul { margin: 8px 0 0 20px; }
+  footer { padding: 22px; max-width: 1500px; margin: 0 auto; color: var(--ink-soft); font-size: 0.8rem; }
+  footer .refs { margin-top: 10px; }
+  footer .refs div { margin-bottom: 3px; }
+  footer a { color: var(--link); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  .disclaimer { background: var(--miss-bg); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+
+  /* ---------- contact ---------- */
+  .contact-section { max-width: 720px; margin: 8px auto 0; padding: 0 22px; }
+  .contact-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 22px; }
+  .contact-card summary { font-size: 1.02rem; font-weight: 700; letter-spacing: -0.01em; cursor: pointer; color: var(--ink); }
+  .contact-card summary:hover { color: var(--accent); }
+  .contact-card[open] summary { margin-bottom: 12px; }
+  .contact-card .lede { color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 18px; }
+  .contact-form { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+  .contact-form .full { grid-column: 1 / -1; }
+  .contact-form label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; }
+  .contact-form input, .contact-form select, .contact-form textarea {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
+    font-family: inherit; font-size: 0.92rem; color: var(--ink); background: #fff;
+  }
+  .contact-form textarea { resize: vertical; min-height: 110px; }
+  .contact-form input:focus, .contact-form select:focus, .contact-form textarea:focus {
+    outline: 2px solid var(--accent-soft); border-color: var(--accent);
+  }
+  .contact-form .hp { position: absolute; left: -9999px; }
+  .contact-submit {
+    grid-column: 1 / -1; justify-self: start; margin-top: 2px;
+    padding: 10px 26px; border: none; border-radius: 8px; background: var(--accent); color: var(--accent-ink);
+    font-family: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer;
+  }
+  .contact-submit:hover { background: #2f7ec2; }
+  .contact-submit:disabled { opacity: 0.6; cursor: default; }
+  .contact-status { grid-column: 1 / -1; font-size: 0.88rem; padding: 9px 12px; border-radius: 8px; display: none; }
+  .contact-status.ok { display: block; background: var(--go-bg); color: var(--go); }
+  .contact-status.err { display: block; background: var(--nogo-bg); color: var(--nogo); }
+  .contact-note { grid-column: 1 / -1; font-size: 0.76rem; color: var(--ink-soft); }
+  @media (max-width: 560px) { .contact-form { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>EVTcalc</h1>
+  <span class="tag">Mechanical thrombectomy candidacy across the landmark trials — anterior &amp; posterior circulation LVO</span>
+</header>
+
+<div class="wrap">
+  <!-- ============ INPUT FORM ============ -->
+  <div class="form-col">
+    <div class="panel">
+      <h2>Clinical</h2>
+      <div class="fields">
+        <div class="field"><label>Age <span class="hint">(years)</span></label>
+          <input type="number" id="age" min="0" max="120" placeholder="e.g. 72"></div>
+        <div class="field"><label>NIHSS</label>
+          <input type="number" id="nihss" min="0" max="42" placeholder="0–42"></div>
+        <div class="field"><label>Last known well <span class="hint">(hours ago / to expected puncture)</span></label>
+          <input type="number" id="lkw" min="0" max="120" step="0.5" placeholder="e.g. 7.5"></div>
+        <div class="field"><label>Pre-stroke mRS</label>
+          <select id="mrs">
+            <option value="">— unknown —</option>
+            <option value="0">0 — no symptoms</option>
+            <option value="1">1 — no significant disability</option>
+            <option value="2">2 — slight disability, independent</option>
+            <option value="3">3 — moderate disability</option>
+            <option value="4">4 — moderately severe</option>
+            <option value="5">5 — severe disability</option>
+          </select></div>
+        <div class="field"><label>IV thrombolytic given ≤ 4.5 h of onset</label>
+          <div class="seg" id="tpa" data-opts="yes:Yes,no:No,unk:Unknown"></div>
+          <div class="subtle-note">SWIFT PRIME &amp; EXTEND-IA enrolled only tPA-treated patients.</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Non-contrast CT</h2>
+      <div class="fields">
+        <div class="field"><label>Intracranial hemorrhage</label>
+          <div class="seg" id="hemorrhage" data-opts="no:No,yes:Yes,unk:Unknown"></div></div>
+        <div class="field" id="aspectsField"><label>ASPECTS <span class="hint">(anterior circulation)</span></label>
+          <input type="number" id="aspects" min="0" max="10" placeholder="0–10"></div>
+        <div class="field" id="pcAspectsField" style="display:none;"><label>pc-ASPECTS <span class="hint">(posterior circulation)</span></label>
+          <input type="number" id="pcaspects" min="0" max="10" placeholder="0–10"></div>
+        <div class="field"><label>Midline shift / mass effect / herniation</label>
+          <div class="seg" id="massEffect" data-opts="no:No,yes:Yes,unk:Unknown"></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>CTA</h2>
+      <div class="fields">
+        <div class="field"><label>Occlusion site</label>
+          <select id="occlusion">
+            <option value="">— select —</option>
+            <option value="ica">ICA (intracranial / terminus)</option>
+            <option value="m1">MCA — M1</option>
+            <option value="m2">MCA — M2 (proximal)</option>
+            <option value="basilar">Basilar artery</option>
+            <option value="other">Other vessel</option>
+            <option value="none">No LVO</option>
+          </select></div>
+        <div class="field"><label>Bilateral strokes / multi-territory occlusions</label>
+          <div class="seg" id="multiOcc" data-opts="no:No,yes:Yes,unk:Unknown"></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>CT Perfusion (RAPID) <span style="text-transform:none;letter-spacing:0;">(optional)</span></h2>
+      <div class="fields">
+        <div class="field"><label>CT perfusion (RAPID) obtained</label>
+          <div class="seg" id="perfDone" data-opts="yes:Yes,no:No"></div></div>
+        <div class="perf-block" id="perfBlock" style="display:none;">
+          <div class="field"><label>Ischemic core volume <span class="hint">(mL; RAPID rCBF&lt;30%)</span></label>
+            <input type="number" id="coreVol" min="0" max="400" placeholder="mL"></div>
+          <div class="field"><label>Mismatch ratio <span class="hint">(penumbra / core)</span></label>
+            <input type="number" id="mmRatio" min="0" max="50" step="0.1" placeholder="e.g. 2.4"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-reset" id="resetBtn">Reset all fields</button>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div class="results-col">
+    <div class="summary-strip" id="summary"></div>
+    <div id="results"></div>
+
+    <details class="consent-panel">
+      <summary>Large-core informed consent — what family needs to know</summary>
+      <ul>
+        <li>High risk of intracranial hemorrhage (any ICH ~50% in large-core trials).</li>
+        <li>High risk of procedural complications and mortality (~20–40%).</li>
+        <li>Post-stroke mRS 4 is a reasonable expectation even with successful reperfusion.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<section class="contact-section" id="contact">
+  <details class="contact-card">
+    <summary>Contact &amp; feedback</summary>
+    <p class="lede">Spotted a criterion that looks off, want a feature, or interested in collaborating? Send a note — it goes straight to the maintainer.</p>
+    <form class="contact-form" id="contactForm">
+      <!-- Web3Forms delivers submissions to your inbox; your address is stored on their server and never appears on this page. -->
+      <input type="hidden" name="access_key" value="40598da1-1d47-480c-b716-0aa9a2e47059">
+      <input type="hidden" name="subject" value="EVTcalc — new message">
+      <input type="hidden" name="from_name" value="EVTcalc contact form">
+      <!-- honeypot -->
+      <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
+
+      <div>
+        <label for="cName">Name</label>
+        <input type="text" id="cName" name="name" required placeholder="Your name">
+      </div>
+      <div>
+        <label for="cEmail">Your email <span style="font-weight:400;color:var(--ink-soft)">(so we can reply)</span></label>
+        <input type="email" id="cEmail" name="email" required placeholder="you@example.com">
+      </div>
+      <div>
+        <label for="cCat">Reason</label>
+        <select id="cCat" name="category">
+          <option>Report a criterion error</option>
+          <option>Feedback / feature request</option>
+          <option>Collaboration / academic inquiry</option>
+          <option>General question</option>
+        </select>
+      </div>
+      <div>
+        <label for="cTrial">Trial <span style="font-weight:400;color:var(--ink-soft)">(if reporting an error)</span></label>
+        <select id="cTrial" name="trial">
+          <option value="">— n/a —</option>
+          <option>MR CLEAN</option><option>ESCAPE</option><option>SWIFT PRIME</option>
+          <option>EXTEND-IA</option><option>REVASCAT</option><option>DEFUSE-3</option>
+          <option>DAWN</option><option>RESCUE-Japan LIMIT</option><option>SELECT2</option>
+          <option>ANGEL-ASPECT</option>
+        </select>
+      </div>
+      <div class="full">
+        <label for="cMsg">Message</label>
+        <textarea id="cMsg" name="message" required placeholder="What's on your mind?"></textarea>
+      </div>
+      <div class="contact-status" id="cStatus"></div>
+      <button type="submit" class="contact-submit" id="cSubmit">Send message</button>
+      <p class="contact-note">Your message is delivered privately to the maintainer. We never publish or share your email.</p>
+    </form>
+  </details>
+</section>
+
+<footer>
+  <div class="disclaimer"><strong>Disclaimer:</strong> EVTcalc is an educational decision-support reference for qualified physicians. It reproduces published trial inclusion/exclusion criteria and does not replace clinical judgment, institutional protocols, or current AHA/ASA guidelines. Trial criteria are simplified where noted; always verify against the primary publication.</div>
+  <div class="refs" id="refs"></div>
+</footer>
+
+<script>
+/* ================= LOGIC-START ================= */
+
+// ---- criterion helpers -------------------------------------------------
+// A criterion fn returns {s: 'pass'|'fail'|'missing'}
+function need(v) { return v === null || v === undefined || v === '' || v === 'unk'; }
+function num(v) { return (v === null || v === undefined || v === '') ? null : Number(v); }
+function chk(missing, cond) { return missing ? { s: 'missing' } : { s: cond ? 'pass' : 'fail' }; }
+
+// State shape:
+// age, nihss, lkw, aspects, pcaspects, coreVol, mmRatio  -> numbers or null
+// mrs -> number or null
+// tpa, hemorrhage, massEffect, multiOcc -> 'yes'|'no'|'unk'|null
+// occlusion -> 'ica'|'m1'|'m2'|'basilar'|'other'|'none'|null
+// perfDone -> 'yes'|'no'|null
+
+const REFS = {
+  mrclean:  { label: "Berkhemer et al., NEJM 2015 (MR CLEAN)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa1411587" },
+  escape:   { label: "Goyal et al., NEJM 2015 (ESCAPE)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa1414905" },
+  swift:    { label: "Saver et al., NEJM 2015 (SWIFT PRIME)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa1415061" },
+  extendia: { label: "Campbell et al., NEJM 2015 (EXTEND-IA)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa1414792" },
+  revascat: { label: "Jovin et al., NEJM 2015 (REVASCAT)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa1503780" },
+  defuse3:  { label: "Albers et al., NEJM 2018 (DEFUSE-3)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa1713973" },
+  dawn:     { label: "Nogueira et al., NEJM 2018 (DAWN)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa1706442" },
+  rescue:   { label: "Yoshimura et al., NEJM 2022 (RESCUE-Japan LIMIT)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa2118191" },
+  select2:  { label: "Sarraj et al., NEJM 2023 (SELECT2)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa2214403" },
+  angel:    { label: "Huo et al., NEJM 2023 (ANGEL-ASPECT)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa2213379" },
+  attention:{ label: "Tao et al., NEJM 2022 (ATTENTION)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa2206317" },
+  baoche:   { label: "Jovin et al., NEJM 2022 (BAOCHE)", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa2207576" },
+};
+
+// perfusion-dependent value: missing if perfusion not done or value absent
+function pv(s, key) { return (s.perfDone !== 'yes') ? null : num(s[key]); }
+
+const TRIALS = [
+  // ================== EARLY WINDOW ==================
+  {
+    id: 'mrclean', name: 'MR CLEAN', group: 'early', year: 2015, ref: REFS.mrclean,
+    sub: '0–6 h · ICA/M1/M2/ACA · NIHSS ≥2 · no imaging core filter',
+    criteria: [
+      { label: 'Age ≥ 18', fn: s => chk(num(s.age) === null, num(s.age) >= 18) },
+      { label: 'NIHSS ≥ 2', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 2) },
+      { label: 'Groin puncture possible ≤ 6 h from onset', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 6) },
+      { label: 'Occlusion: distal ICA, M1, M2 (or A1/A2)', fn: s => chk(need(s.occlusion), ['ica','m1','m2'].includes(s.occlusion)) },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+      { label: 'No pre-stroke functional restriction (any mRS)', fn: () => ({ s: 'pass' }) },
+    ],
+    note: 'Least restrictive imaging of the 2015 trials — no ASPECTS or core-volume threshold.'
+  },
+  {
+    id: 'escape', name: 'ESCAPE', group: 'early', year: 2015, ref: REFS.escape,
+    sub: '0–12 h · ICA-T/M1 · ASPECTS ≥6',
+    criteria: [
+      { label: 'Age ≥ 18', fn: s => chk(num(s.age) === null, num(s.age) >= 18) },
+      { label: 'NIHSS ≥ 6 (disabling)', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6) },
+      { label: 'Randomization < 12 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) < 12) },
+      { label: 'Pre-stroke independent (Barthel > 90 ≈ mRS 0–2)', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 2) },
+      { label: 'Occlusion: carotid T / M1 (or ≥2 M2s)', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'ASPECTS 6–10', fn: s => chk(num(s.aspects) === null, num(s.aspects) >= 6) },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'Pre-stroke independence measured as Barthel Index >90 in the trial; approximated here by mRS 0–2. Trial also required ≥50% MCA pial collateral filling.'
+  },
+  {
+    id: 'swift', name: 'SWIFT PRIME', group: 'early', year: 2015, ref: REFS.swift,
+    sub: '0–6 h · after IV tPA · ICA/M1 · ASPECTS ≥6',
+    criteria: [
+      { label: 'Age 18–80', fn: s => chk(num(s.age) === null, num(s.age) >= 18 && num(s.age) <= 80) },
+      { label: 'NIHSS 8–29', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 8 && num(s.nihss) <= 29) },
+      { label: 'Groin puncture ≤ 6 h from onset', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 6) },
+      { label: 'IV tPA initiated ≤ 4.5 h (required)', fn: s => chk(need(s.tpa), s.tpa === 'yes') },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: intracranial ICA / M1', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'ASPECTS ≥ 6 (amended criteria)', fn: s => chk(num(s.aspects) === null, num(s.aspects) >= 6) },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'First 71 patients required RAPID target-mismatch (core ≤50 mL); protocol then amended to ASPECTS-based selection shown here. Trial also excluded infarct >1/3 MCA (≈ ASPECTS <6).'
+  },
+  {
+    id: 'extendia', name: 'EXTEND-IA', group: 'early', year: 2015, ref: REFS.extendia,
+    sub: '0–6 h · after IV tPA · RAPID mismatch · no NIHSS floor',
+    criteria: [
+      { label: 'Age ≥ 18', fn: s => chk(num(s.age) === null, num(s.age) >= 18) },
+      { label: 'No NIHSS threshold (imaging-selected)', fn: () => ({ s: 'pass' }) },
+      { label: 'IV tPA ≤ 4.5 h (required)', fn: s => chk(need(s.tpa), s.tpa === 'yes') },
+      { label: 'Groin puncture ≤ 6 h from onset', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 6) },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: ICA / M1 / M2', fn: s => chk(need(s.occlusion), ['ica','m1','m2'].includes(s.occlusion)) },
+      { label: 'RAPID: core < 70 mL', fn: s => chk(pv(s,'coreVol') === null, pv(s,'coreVol') < 70) },
+      { label: 'RAPID: mismatch ratio > 1.2', fn: s => chk(pv(s,'mmRatio') === null, pv(s,'mmRatio') > 1.2) },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'Trial also required absolute mismatch volume >10 mL — nearly always met when core <70 mL and ratio >1.2.'
+  },
+  {
+    id: 'revascat', name: 'REVASCAT', group: 'early', year: 2015, ref: REFS.revascat,
+    sub: '0–8 h · ICA/M1 · NCCT ASPECTS ≥7',
+    criteria: [
+      { label: 'Age 18–85', fn: s => chk(num(s.age) === null, num(s.age) >= 18 && num(s.age) <= 85) },
+      { label: 'NIHSS ≥ 6', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6) },
+      { label: 'Groin puncture ≤ 8 h from onset', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 8) },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: intracranial ICA / M1 (± tandem)', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'ASPECTS ≥ 7 on NCCT (≥9 if age 81–85)', fn: s => {
+          const a = num(s.aspects), age = num(s.age);
+          if (a === null) return { s: 'missing' };
+          const cut = (age !== null && age >= 81) ? 9 : 7;
+          return { s: a >= cut ? 'pass' : 'fail' };
+        } },
+      { label: 'No significant mass effect / midline shift', fn: s => chk(need(s.massEffect), s.massEffect === 'no') },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'NCCT ASPECTS cutoff shown. Ages 81–85 required ASPECTS ≥9.'
+  },
+
+  // ================== LATE WINDOW ==================
+  {
+    id: 'defuse3', name: 'DEFUSE-3', group: 'late', year: 2018, ref: REFS.defuse3,
+    sub: '6–16 h · ICA/M1 · RAPID target mismatch',
+    criteria: [
+      { label: 'Age 18–90', fn: s => chk(num(s.age) === null, num(s.age) >= 18 && num(s.age) <= 90) },
+      { label: 'NIHSS ≥ 6', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6) },
+      { label: 'Window 6–16 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) >= 6 && num(s.lkw) <= 16) },
+      { label: 'Pre-stroke mRS 0–2', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 2) },
+      { label: 'Occlusion: ICA (cervical or intracranial) / M1', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'ASPECTS ≥ 6 on NCCT', fn: s => chk(num(s.aspects) === null, num(s.aspects) >= 6) },
+      { label: 'RAPID: core < 70 mL (CTP)', fn: s => chk(pv(s,'coreVol') === null, pv(s,'coreVol') < 70) },
+      { label: 'RAPID: mismatch ratio ≥ 1.8', fn: s => chk(pv(s,'mmRatio') === null, pv(s,'mmRatio') >= 1.8) },
+      { label: 'No significant mass effect / midline shift', fn: s => chk(need(s.massEffect), s.massEffect === 'no') },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'Trial also required absolute mismatch volume ≥15 mL (nearly always met when core <70 mL and ratio ≥1.8) and life expectancy >6 months.'
+  },
+  {
+    id: 'dawn', name: 'DAWN', group: 'late', year: 2018, ref: REFS.dawn,
+    sub: '6–24 h · ICA/M1 · clinical–core mismatch (A/B/C)',
+    criteria: [
+      { label: 'Age ≥ 18', fn: s => chk(num(s.age) === null, num(s.age) >= 18) },
+      { label: 'NIHSS ≥ 10', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 10) },
+      { label: 'Window 6–24 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) >= 6 && num(s.lkw) <= 24) },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: intracranial ICA / M1', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'Clinical–core mismatch (RAPID CTP)', fn: s => {
+          const age = num(s.age), n = num(s.nihss), core = pv(s,'coreVol');
+          if (age === null || n === null || core === null) return { s: 'missing' };
+          const A = age >= 80 && n >= 10 && core < 21;
+          const B = age < 80 && n >= 10 && core < 31;
+          const C = age < 80 && n >= 20 && core >= 31 && core < 51;
+          return { s: (A || B || C) ? 'pass' : 'fail' };
+        } },
+      { label: 'Single qualifying occlusion (no multi-territory)', fn: s => chk(need(s.multiOcc), s.multiOcc === 'no') },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'Mismatch groups — A: age ≥80, NIHSS ≥10, core <21 mL · B: age <80, NIHSS ≥10, core <31 mL · C: age <80, NIHSS ≥20, core 31–50 mL.'
+  },
+
+  // ================== LARGE CORE ==================
+  {
+    id: 'rescue', name: 'RESCUE-Japan LIMIT', group: 'large', year: 2022, ref: REFS.rescue,
+    sub: '≤ 6 h (CT) · ICA/M1 · NCCT ASPECTS 3–5',
+    criteria: [
+      { label: 'Age ≥ 18', fn: s => chk(num(s.age) === null, num(s.age) >= 18) },
+      { label: 'NIHSS ≥ 6', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6) },
+      { label: 'Window ≤ 6 h from onset (late window needs FLAIR-MRI)', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 6) },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: ICA / M1', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'ASPECTS 3–5 (NCCT)', fn: s => chk(num(s.aspects) === null, num(s.aspects) >= 3 && num(s.aspects) <= 5) },
+      { label: 'No significant midline shift / mass effect', fn: s => chk(need(s.massEffect), s.massEffect === 'no') },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'Trial used mainly DWI-ASPECTS; NCCT ASPECTS 3–5 applied here. Late 6–24 h entry required FLAIR-negative MRI — not assessable on CT, so only ≤6 h qualifies here.'
+  },
+  {
+    id: 'select2', name: 'SELECT2', group: 'large', year: 2023, ref: REFS.select2,
+    sub: '0–24 h · ICA/M1 · ASPECTS 3–5 or core ≥50 mL',
+    criteria: [
+      { label: 'Age 18–85', fn: s => chk(num(s.age) === null, num(s.age) >= 18 && num(s.age) <= 85) },
+      { label: 'NIHSS ≥ 6', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6) },
+      { label: 'Window ≤ 24 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 24) },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: ICA (cervical/intracranial) / M1 (± tandem)', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'Large core: ASPECTS 3–5, or core ≥ 50 mL (CTP)', fn: s => {
+          const a = num(s.aspects), core = pv(s,'coreVol');
+          if (a !== null && a >= 3 && a <= 5) return { s: 'pass' };
+          if (core !== null && core >= 50 && (a === null || a >= 3)) return { s: 'pass' };
+          if (a === null && core === null) return { s: 'missing' };
+          if (a !== null && (a < 3)) return { s: 'fail' };            // ASPECTS 0–2 excluded
+          if (a !== null && a > 5 && core === null && s.perfDone === 'yes') return { s: 'missing' };
+          if (a !== null && a > 5 && core === null) return { s: 'missing' };
+          return { s: 'fail' };
+        } },
+      { label: 'No significant mass effect / midline shift', fn: s => chk(need(s.massEffect), s.massEffect === 'no') },
+      { label: 'No multi-territory occlusions', fn: s => chk(need(s.multiOcc), s.multiOcc === 'no') },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'ASPECTS 0–2 on NCCT was excluded. Core ≥50 mL defined as RAPID rCBF <30% (CTP).'
+  },
+  {
+    id: 'angel', name: 'ANGEL-ASPECT', group: 'large', year: 2023, ref: REFS.angel,
+    sub: '0–24 h · ICA-T/M1 · ASPECTS 3–5, or core 70–100 mL',
+    criteria: [
+      { label: 'Age 18–80', fn: s => chk(num(s.age) === null, num(s.age) >= 18 && num(s.age) <= 80) },
+      { label: 'NIHSS 6–30', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6 && num(s.nihss) <= 30) },
+      { label: 'Window ≤ 24 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 24) },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: ICA terminus / M1', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
+      { label: 'Core: ASPECTS 3–5, or core 70–100 mL if ASPECTS 0–2 or >5 (6–24 h)', fn: s => {
+          const a = num(s.aspects), core = pv(s,'coreVol'), t = num(s.lkw);
+          if (a === null) return { s: 'missing' };
+          if (a >= 3 && a <= 5) return { s: 'pass' };
+          if (core === null) return { s: 'missing' };
+          const band = core >= 70 && core <= 100;
+          if (a < 3) return { s: band ? 'pass' : 'fail' };
+          // ASPECTS > 5: qualifies only in the 6–24 h window with core 70–100 mL
+          if (t === null) return { s: 'missing' };
+          return { s: (band && t >= 6 && t <= 24) ? 'pass' : 'fail' };
+        } },
+      { label: 'No midline shift / herniation / ventricular effacement', fn: s => chk(need(s.massEffect), s.massEffect === 'no') },
+      { label: 'No bilateral strokes / multiple occlusions', fn: s => chk(need(s.multiOcc), s.multiOcc === 'no') },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'Core 70–100 mL is both a floor and a ceiling: cores >100 mL were excluded. Only trial that enrolled ASPECTS 0–2.'
+  },
+
+  // ================== POSTERIOR CIRCULATION (BASILAR) ==================
+  {
+    id: 'attention', name: 'ATTENTION', group: 'posterior', year: 2022, ref: REFS.attention,
+    sub: '≤ 12 h · basilar · pc-ASPECTS ≥6 (≥8 if >80)',
+    criteria: [
+      { label: 'Age ≥ 18', fn: s => chk(num(s.age) === null, num(s.age) >= 18) },
+      { label: 'NIHSS ≥ 10', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 10) },
+      { label: 'Window ≤ 12 h from estimated onset', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 12) },
+      { label: 'Pre-stroke mRS 0–2 (0 if age >80)', fn: s => {
+          const age = num(s.age), m = num(s.mrs);
+          if (m === null || age === null) return { s: 'missing' };
+          return { s: (age > 80 ? m === 0 : m <= 2) ? 'pass' : 'fail' };
+        } },
+      { label: 'Occlusion: basilar artery', fn: s => chk(need(s.occlusion), s.occlusion === 'basilar') },
+      { label: 'pc-ASPECTS ≥ 6 (≥8 if age >80)', fn: s => {
+          const p = num(s.pcaspects), age = num(s.age);
+          if (p === null) return { s: 'missing' };
+          if (age === null) return { s: 'missing' };
+          const cut = age > 80 ? 8 : 6;
+          return { s: p >= cut ? 'pass' : 'fail' };
+        } },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'No upper age limit (patients >80 needed pc-ASPECTS ≥8 and pre-stroke mRS 0). No perfusion required. Excludes extensive/complete bilateral brainstem infarction.'
+  },
+  {
+    id: 'baoche', name: 'BAOCHE', group: 'posterior', year: 2022, ref: REFS.baoche,
+    sub: '6–24 h · basilar · pc-ASPECTS ≥6',
+    criteria: [
+      { label: 'Age 18–80', fn: s => chk(num(s.age) === null, num(s.age) >= 18 && num(s.age) <= 80) },
+      { label: 'NIHSS ≥ 6', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6) },
+      { label: 'Window 6–24 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) >= 6 && num(s.lkw) <= 24) },
+      { label: 'Pre-stroke mRS 0–1', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 1) },
+      { label: 'Occlusion: basilar artery', fn: s => chk(need(s.occlusion), s.occlusion === 'basilar') },
+      { label: 'pc-ASPECTS ≥ 6', fn: s => chk(num(s.pcaspects) === null, num(s.pcaspects) >= 6) },
+      { label: 'No intracranial hemorrhage', fn: s => chk(need(s.hemorrhage), s.hemorrhage === 'no') },
+    ],
+    note: 'NIHSS floor amended from ≥10 to ≥6. Also required pons–midbrain index ≤2 (extensive brainstem infarct excluded) — assess separately. No perfusion required.'
+  },
+];
+
+function evaluateTrial(trial, s) {
+  const rows = trial.criteria.map(c => ({ label: c.label, ...c.fn(s) }));
+  let verdict;
+  if (rows.some(r => r.s === 'fail')) verdict = 'nogo';
+  else if (rows.some(r => r.s === 'missing')) verdict = 'unk';
+  else verdict = 'go';
+  return { verdict, rows };
+}
+
+function evaluateAll(s) {
+  return TRIALS.map(t => ({ trial: t, ...evaluateTrial(t, s) }));
+}
+/* ================= LOGIC-END ================= */
+
+// ---- UI wiring ---------------------------------------------------------
+const segIds = ['tpa','hemorrhage','massEffect','multiOcc','perfDone'];
+const numIds = ['age','nihss','lkw','aspects','pcaspects','coreVol','mmRatio'];
+const selIds = ['mrs','occlusion'];
+const state = {};
+
+function initSegs() {
+  segIds.forEach(id => {
+    state[id] = null;
+    const el = document.getElementById(id);
+    el.dataset.opts.split(',').forEach(pair => {
+      const [val, label] = pair.split(':');
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = label; b.dataset.val = val;
+      b.addEventListener('click', () => {
+        if (state[id] === val) { state[id] = null; }        // toggle off
+        else { state[id] = val; }
+        [...el.children].forEach(c => c.classList.toggle('on', c.dataset.val === state[id]));
+        if (id === 'perfDone') togglePerf();
+        render();
+      });
+      el.appendChild(b);
+    });
+  });
+}
+function togglePerf() {
+  document.getElementById('perfBlock').style.display = state.perfDone === 'yes' ? 'flex' : 'none';
+}
+function updateConditionalFields() {
+  const basilar = state.occlusion === 'basilar';
+  document.getElementById('pcAspectsField').style.display = basilar ? 'block' : 'none';
+  document.getElementById('aspectsField').style.display = basilar ? 'none' : 'block';
+}
+function readInputs() {
+  numIds.forEach(id => { state[id] = document.getElementById(id).value; });
+  selIds.forEach(id => { state[id] = document.getElementById(id).value || null; });
+}
+
+const GROUPS = [
+  { key: 'early', title: 'Early window (0–6 h era trials)', sub: 'MR CLEAN · ESCAPE · SWIFT PRIME · EXTEND-IA · REVASCAT' },
+  { key: 'late',  title: 'Extended window (6–24 h)', sub: 'DEFUSE-3 · DAWN' },
+  { key: 'large', title: 'Large core (0–24 h)', sub: 'RESCUE-Japan LIMIT · SELECT2 · ANGEL-ASPECT' },
+  { key: 'posterior', title: 'Posterior circulation (basilar)', sub: 'ATTENTION · BAOCHE' },
+];
+const BADGE = { go: 'MEETS CRITERIA', nogo: 'NOT ELIGIBLE', unk: 'INSUFFICIENT DATA' };
+const MARK = { pass: '✓', fail: '✗', missing: '·' };
+
+function render() {
+  readInputs();
+  updateConditionalFields();
+  const results = evaluateAll(state);
+  const counts = { go: 0, nogo: 0, unk: 0 };
+  results.forEach(r => counts[r.verdict]++);
+  document.getElementById('summary').innerHTML =
+    '<span><b class="go">' + counts.go + '</b> meets criteria</span>' +
+    '<span><b class="nogo">' + counts.nogo + '</b> not eligible</span>' +
+    '<span><b class="unk">' + counts.unk + '</b> insufficient data</span>' +
+    (counts.go > 0
+      ? '<span style="color:var(--ink-soft)">Meets criteria for: ' +
+        results.filter(r => r.verdict==='go').map(r => '<b>' + r.trial.name + '</b>').join(', ') + '</span>'
+      : '');
+
+  const container = document.getElementById('results');
+  container.innerHTML = '';
+
+  // Order groups so those with an applicable (meets / insufficient-data) trial float to the top.
+  const groupHasApplicable = g => results.some(r => r.trial.group === g.key && r.verdict !== 'nogo');
+  const orderedGroups = GROUPS.map((g, i) => ({ g, i, applic: groupHasApplicable(g) }))
+    .sort((a, b) => (a.applic === b.applic) ? a.i - b.i : (a.applic ? -1 : 1))
+    .map(x => x.g);
+
+  orderedGroups.forEach(g => {
+    const groupResults = results.filter(r => r.trial.group === g.key);
+    const h = document.createElement('div');
+    h.className = 'group-h';
+    h.innerHTML = g.title + ' <span class="gsub">' + g.sub + '</span>';
+    container.appendChild(h);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    groupResults.forEach(r => {
+      const applicable = r.verdict !== 'nogo';           // meets criteria OR insufficient data
+      const card = document.createElement('details');
+      card.className = 'trial' + (r.verdict === 'go' ? ' applic' : '');
+      if (applicable) card.open = true;                  // expand only applicable trials
+      const rowsHtml = r.rows.map(row =>
+        '<li class="' + row.s + '"><span class="mark">' + MARK[row.s] + '</span><span class="ctext">' + row.label + '</span></li>'
+      ).join('');
+      const reason = (r.verdict === 'nogo')
+        ? (r.rows.find(row => row.s === 'fail') || {}).label : null;
+      card.innerHTML =
+        '<summary>' +
+          '<span class="summ-left">' +
+            '<span class="tname"><span class="caret">▸</span>' + r.trial.name + '</span>' +
+            '<span class="tsub">' + r.trial.sub + '</span>' +
+            (reason ? '<span class="treason">✗ ' + reason + '</span>' : '') +
+          '</span>' +
+          '<span class="badge ' + r.verdict + '">' + BADGE[r.verdict] + '</span>' +
+        '</summary>' +
+        '<ul class="crit-list">' + rowsHtml + '</ul>' +
+        (r.trial.note ? '<div style="padding:6px 14px 10px;font-size:0.76rem;color:var(--ink-soft);border-top:1px dashed var(--line);">' + r.trial.note + '</div>' : '') +
+        '<div class="trial-cite"><a href="' + r.trial.ref.url + '" target="_blank" rel="noopener">' + r.trial.ref.label + '</a></div>' +
+        '<div style="height:10px"></div>';
+      grid.appendChild(card);
+    });
+    container.appendChild(grid);
+  });
+}
+
+function renderRefs() {
+  document.getElementById('refs').innerHTML = '<strong>References</strong> ' +
+    Object.values(REFS).map(r => '<div><a href="' + r.url + '" target="_blank" rel="noopener">' + r.label + '</a></div>').join('');
+}
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  numIds.forEach(id => document.getElementById(id).value = '');
+  selIds.forEach(id => document.getElementById(id).value = '');
+  segIds.forEach(id => {
+    state[id] = null;
+    [...document.getElementById(id).children].forEach(c => c.classList.remove('on'));
+  });
+  togglePerf();
+  render();
+});
+
+[...numIds, ...selIds].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+});
+
+initSegs();
+render();
+renderRefs();
+
+// ---- contact form (Web3Forms) -----------------------------------------
+const contactForm = document.getElementById('contactForm');
+contactForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const statusEl = document.getElementById('cStatus');
+  const btn = document.getElementById('cSubmit');
+  const key = contactForm.querySelector('[name="access_key"]').value;
+  if (key === 'YOUR_WEB3FORMS_ACCESS_KEY') {
+    statusEl.className = 'contact-status err';
+    statusEl.textContent = 'Contact form not yet configured — add your Web3Forms access key to enable sending.';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  statusEl.className = 'contact-status'; statusEl.textContent = '';
+  try {
+    const data = Object.fromEntries(new FormData(contactForm));
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const out = await res.json();
+    if (out.success) {
+      statusEl.className = 'contact-status ok';
+      statusEl.textContent = 'Thanks — your message was sent. We’ll be in touch.';
+      contactForm.reset();
+    } else {
+      throw new Error(out.message || 'Submission failed');
+    }
+  } catch (err) {
+    statusEl.className = 'contact-status err';
+    statusEl.textContent = 'Something went wrong sending your message. Please try again later.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send message';
+  }
+});
+</script>
+</body>
+</html>
