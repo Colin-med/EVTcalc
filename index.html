@@ -108,6 +108,13 @@
   .synth-chips b.nogo { color: var(--nogo); }
   .synth-chips b.unk { color: var(--unk); }
   .synth-near { font-size: 0.84rem; font-weight: 600; color: var(--accent); }
+  .synth-near-d { font-size: 0.84rem; }
+  .synth-near-d > summary { cursor: pointer; list-style: none; color: var(--accent); font-weight: 600; }
+  .synth-near-d > summary::-webkit-details-marker { display: none; }
+  .synth-near-d .near-more { color: var(--link); font-weight: 700; margin-left: 2px; }
+  .synth-near-d[open] .near-more { }
+  .near-list { margin: 6px 0 0; padding-left: 20px; font-weight: 400; color: var(--ink-soft); }
+  .near-list li { margin: 3px 0; font-size: 0.82rem; }
   .synth-barrier { font-size: 0.82rem; color: var(--ink-soft); }
   .synth-note { font-size: 0.74rem; color: var(--ink-soft); font-style: italic; margin-top: 1px; }
   .near-chip { font-size: 0.7rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 20px; padding: 2px 8px; align-self: flex-start; margin-top: 3px; }
@@ -252,6 +259,12 @@
   .calc-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); font-size: 0.86rem; }
   .calc-foot .tot { font-weight: 700; font-size: 0.95rem; }
   .calc-use { padding: 7px 13px; border: none; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 0.8rem; cursor: pointer; font-family: inherit; }
+  .mrs-q { padding: 8px 0; border-bottom: 1px solid #eef1f4; }
+  .mrs-q:last-of-type { border-bottom: none; }
+  .mrs-yn { display: flex; gap: 8px; margin-top: 6px; }
+  .mrs-btn { flex: 1; padding: 8px; border: 1px solid var(--line); background: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.83rem; color: var(--ink); }
+  .mrs-btn:hover { border-color: var(--accent); }
+  .mrs-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
   .btn-share { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink); border-radius: 8px; cursor: pointer; font-size: 0.88rem; font-weight: 600; font-family: inherit; }
   .btn-share:hover { background: #d6e8f8; }
   .share-note { font-size: 0.72rem; color: var(--ink-soft); margin-top: 6px; text-align: center; }
@@ -307,7 +320,7 @@
           <div class="calc-panel" id="nihssCalc" style="display:none;"></div></div>
         <div class="field"><label>Last known well <span class="hint">(hours ago / to expected puncture)</span></label>
           <input type="number" id="lkw" min="0" max="120" step="0.5" placeholder="e.g. 7.5"></div>
-        <div class="field"><label>Pre-stroke mRS</label>
+        <div class="field"><label>Pre-stroke mRS <button type="button" class="mini-calc" data-calc="mrs">calculator ▾</button></label>
           <select id="mrs">
             <option value="">— unknown —</option>
             <option value="0">0 — no symptoms</option>
@@ -316,7 +329,8 @@
             <option value="3">3 — moderate disability</option>
             <option value="4">4 — moderately severe</option>
             <option value="5">5 — severe disability</option>
-          </select></div>
+          </select>
+          <div class="calc-panel" id="mrsCalc" style="display:none;"></div></div>
         <div class="field"><label>IV thrombolytic given ≤ 4.5 h of onset</label>
           <div class="seg" id="tpa" data-opts="yes:Yes,no:No,unk:Unknown"></div>
           <div class="subtle-note">SWIFT PRIME &amp; EXTEND-IA enrolled only tPA-treated patients.</div></div>
@@ -878,7 +892,7 @@ function needFor(label) {
   if (l.includes('mass effect') || l.includes('midline') || l.includes('herniation') || l.includes('effacement')) return 'mass-effect / midline shift';
   if (l.includes('tpa') || l.includes('thrombolytic')) return 'IV thrombolytic status';
   if (l.includes('mrs')) return 'pre-stroke mRS';
-  if (l.includes('occlusion')) return 'occlusion site';
+  if (l.includes('occlusion') || l.includes('mevo')) return 'occlusion site';
   if (l.includes('multi-territory') || l.includes('bilateral')) return 'multi-territory occlusion status';
   if (l.includes('nihss')) return 'NIHSS';
   if (l.includes('age')) return 'age';
@@ -975,11 +989,16 @@ function render() {
   const negLine = (goPos.length && goNeg.length)
     ? '<div class="synth-barrier" style="color:var(--nogo)">⚠ Also fits negative/neutral MeVO trials: ' + goNeg.join(', ') + ' (no benefit shown).</div>'
     : '';
-  const nearLine = nearMisses.length
-    ? '<div class="synth-near">◐ Closest to eligible: ' +
-        nearMisses.slice(0,2).map(r => r.trial.name + ' — 1 criterion away (' + r._fails[0].label + ')').join('; ') +
-        (nearMisses.length > 2 ? '; +' + (nearMisses.length - 2) + ' more' : '') + '</div>'
-    : '';
+  const nearItems = nearMisses.map(r => r.trial.name + ' — 1 criterion away (' + r._fails[0].label + ')');
+  let nearLine = '';
+  if (nearItems.length && nearItems.length <= 2) {
+    nearLine = '<div class="synth-near">◐ Closest to eligible: ' + nearItems.join('; ') + '</div>';
+  } else if (nearItems.length > 2) {
+    nearLine = '<details class="synth-near-d"><summary>◐ Closest to eligible: ' +
+      nearItems.slice(0,2).join('; ') +
+      ' <span class="near-more">+' + (nearItems.length - 2) + ' more ▾</span></summary>' +
+      '<ul class="near-list">' + nearItems.map(i => '<li>' + i + '</li>').join('') + '</ul></details>';
+  }
   const barrierLine = (counts.go === 0 && counts.nogo > 0 && topBarriers.length)
     ? '<div class="synth-barrier">Main barrier' + (topBarriers.length > 1 ? 's' : '') + ': ' +
         topBarriers.slice(0,2).map(([c,n]) => c + ' (' + n + ' trial' + (n !== 1 ? 's' : '') + ')').join(', ') + '</div>'
@@ -1109,8 +1128,61 @@ function buildAspects(panelId, inputId, regions, start) {
     panel.style.display='none'; render();
   });
 }
+const MRS_STEPS = [
+  { q: 'Any residual symptoms from the stroke at all?', hint: 'weakness, speech, sensory, visual, coordination', no: 0 },
+  { q: 'Do those symptoms cause any disability?', hint: 'unable to carry out some activity done before the stroke', no: 1 },
+  { q: 'Able to look after own affairs without assistance?', hint: 'finances, cooking, shopping, self-care', yes: 2 },
+  { q: 'Able to walk without assistance from another person?', hint: 'a cane or walker is fine', yes: 3 },
+  { q: 'Bedridden, incontinent, and requiring constant nursing care?', yes: 5, no: 4 },
+];
+const MRS_DESC = {0:'no symptoms',1:'no significant disability',2:'slight disability — independent',3:'moderate disability — walks unaided',4:'moderately severe — needs help walking & self-care',5:'severe — bedridden, constant care'};
+function buildMrs() {
+  const panel = document.getElementById('mrsCalc');
+  let answers = [];
+  const outcomeAt = (i, ans) => {
+    const st = MRS_STEPS[i];
+    if (ans === 'no'  && st.no  !== undefined) return st.no;
+    if (ans === 'yes' && st.yes !== undefined) return st.yes;
+    return null;
+  };
+  function draw() {
+    let html = '<div style="font-size:0.76rem;color:var(--ink-soft);margin-bottom:6px;">Answer to grade pre-stroke function — score fills in automatically.</div>';
+    let result = null;
+    for (let i = 0; i < MRS_STEPS.length; i++) {
+      const st = MRS_STEPS[i], ans = answers[i];
+      html += '<div class="mrs-q"><div class="nih-q">' + (i+1) + '. ' + st.q +
+        (st.hint ? ' <span class="nih-hint">— ' + st.hint + '</span>' : '') + '</div>' +
+        '<div class="mrs-yn">' +
+        '<button type="button" class="mrs-btn' + (ans==='yes'?' on':'') + '" data-i="'+i+'" data-a="yes">Yes</button>' +
+        '<button type="button" class="mrs-btn' + (ans==='no'?' on':'') + '" data-i="'+i+'" data-a="no">No</button>' +
+        '</div></div>';
+      if (ans === undefined) break;
+      const o = outcomeAt(i, ans);
+      if (o !== null) { result = o; break; }
+    }
+    if (result !== null) {
+      html += '<div class="calc-foot"><span>Pre-stroke mRS <span class="tot">' + result + '</span> — ' + MRS_DESC[result] +
+        '</span><button type="button" class="calc-use" data-mrs="'+result+'">Use score</button></div>';
+    }
+    panel.innerHTML = html;
+    panel.querySelectorAll('.mrs-btn').forEach(b => b.addEventListener('click', () => {
+      const idx = Number(b.dataset.i);
+      answers = answers.slice(0, idx);
+      answers[idx] = b.dataset.a;
+      draw();
+    }));
+    const use = panel.querySelector('.calc-use');
+    if (use) use.addEventListener('click', () => {
+      document.getElementById('mrs').value = use.dataset.mrs;
+      panel.style.display = 'none';
+      render();
+    });
+  }
+  draw();
+}
 function initCalcs() {
   buildNihss();
+  buildMrs();
   buildAspects('aspectsCalc','aspects',ASPECTS_REGIONS,10);
   buildAspects('pcaspectsCalc','pcaspects',PCASPECTS_REGIONS,10);
   document.querySelectorAll('.mini-calc').forEach(btn=>btn.addEventListener('click',()=>{
