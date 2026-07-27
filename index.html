@@ -198,6 +198,24 @@
   .field input.invalid ~ .rangewarn { display: block; }
   .summary-warn { color: var(--nogo); font-size: 0.85rem; }
 
+  /* ---------- built-in calculators + share ---------- */
+  .mini-calc { margin-left: 8px; font-size: 0.72rem; font-weight: 600; color: var(--link); background: none;
+    border: none; cursor: pointer; padding: 0; text-decoration: underline; font-family: inherit; }
+  .mini-calc:hover { color: var(--accent); }
+  .calc-panel { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfe; padding: 10px 11px; }
+  .calc-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.82rem; border-bottom: 1px solid #eef1f4; }
+  .calc-row:last-of-type { border-bottom: none; }
+  .calc-row span { flex: 1; }
+  .calc-row select { width: auto; min-width: 60px; padding: 5px 6px; font-size: 0.82rem; }
+  .calc-check { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; padding: 5px 0; cursor: pointer; border-bottom: 1px solid #eef1f4; }
+  .calc-check input { width: 16px; height: 16px; }
+  .calc-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); font-size: 0.86rem; }
+  .calc-foot .tot { font-weight: 700; font-size: 0.95rem; }
+  .calc-use { padding: 7px 13px; border: none; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 0.8rem; cursor: pointer; font-family: inherit; }
+  .btn-share { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink); border-radius: 8px; cursor: pointer; font-size: 0.88rem; font-weight: 600; font-family: inherit; }
+  .btn-share:hover { background: #d6e8f8; }
+  .share-note { font-size: 0.72rem; color: var(--ink-soft); margin-top: 6px; text-align: center; }
+
   /* ---------- mobile / touch ---------- */
   @media (max-width: 640px) {
     header { padding: 11px 15px; gap: 5px; }
@@ -244,8 +262,9 @@
       <div class="fields">
         <div class="field"><label>Age <span class="hint">(years)</span></label>
           <input type="number" id="age" min="0" max="120" placeholder="e.g. 72"></div>
-        <div class="field"><label>NIHSS</label>
-          <input type="number" id="nihss" min="0" max="42" placeholder="0–42"></div>
+        <div class="field"><label>NIHSS <button type="button" class="mini-calc" data-calc="nihss">calculator ▾</button></label>
+          <input type="number" id="nihss" min="0" max="42" placeholder="0–42">
+          <div class="calc-panel" id="nihssCalc" style="display:none;"></div></div>
         <div class="field"><label>Last known well <span class="hint">(hours ago / to expected puncture)</span></label>
           <input type="number" id="lkw" min="0" max="120" step="0.5" placeholder="e.g. 7.5"></div>
         <div class="field"><label>Pre-stroke mRS</label>
@@ -269,10 +288,12 @@
       <div class="fields">
         <div class="field"><label>Intracranial hemorrhage</label>
           <div class="seg" id="hemorrhage" data-opts="no:No,yes:Yes,unk:Unknown"></div></div>
-        <div class="field" id="aspectsField"><label>ASPECTS <span class="hint">(anterior circulation)</span></label>
-          <input type="number" id="aspects" min="0" max="10" placeholder="0–10"></div>
-        <div class="field" id="pcAspectsField" style="display:none;"><label>pc-ASPECTS <span class="hint">(posterior circulation)</span></label>
-          <input type="number" id="pcaspects" min="0" max="10" placeholder="0–10"></div>
+        <div class="field" id="aspectsField"><label>ASPECTS <span class="hint">(anterior)</span> <button type="button" class="mini-calc" data-calc="aspects">calculator ▾</button></label>
+          <input type="number" id="aspects" min="0" max="10" placeholder="0–10">
+          <div class="calc-panel" id="aspectsCalc" style="display:none;"></div></div>
+        <div class="field" id="pcAspectsField" style="display:none;"><label>pc-ASPECTS <span class="hint">(posterior)</span> <button type="button" class="mini-calc" data-calc="pcaspects">calculator ▾</button></label>
+          <input type="number" id="pcaspects" min="0" max="10" placeholder="0–10">
+          <div class="calc-panel" id="pcaspectsCalc" style="display:none;"></div></div>
         <div class="field"><label>Midline shift / mass effect / herniation</label>
           <div class="seg" id="massEffect" data-opts="no:No,yes:Yes,unk:Unknown"></div></div>
       </div>
@@ -311,6 +332,8 @@
     </div>
 
     <button class="btn-reset" id="resetBtn">Reset all fields</button>
+    <button class="btn-share" id="shareBtn">🔗 Copy shareable case link</button>
+    <div class="share-note" id="shareNote">Encodes the clinical values only — no name, MRN, or identifiers.</div>
   </div>
 
   <!-- ============ RESULTS ============ -->
@@ -852,6 +875,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     state[id] = null;
     [...document.getElementById(id).children].forEach(c => c.classList.remove('on'));
   });
+  if (location.hash) history.replaceState(null, '', location.pathname);
   togglePerf();
   render();
 });
@@ -860,7 +884,93 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById(id).addEventListener('input', render);
 });
 
+// ================= built-in calculators =================
+const NIHSS_ITEMS = [
+  ['1a Level of consciousness', [0,1,2,3]],
+  ['1b LOC questions', [0,1,2]],
+  ['1c LOC commands', [0,1,2]],
+  ['2 Best gaze', [0,1,2]],
+  ['3 Visual fields', [0,1,2,3]],
+  ['4 Facial palsy', [0,1,2,3]],
+  ['5a Left arm motor', [0,1,2,3,4]],
+  ['5b Right arm motor', [0,1,2,3,4]],
+  ['6a Left leg motor', [0,1,2,3,4]],
+  ['6b Right leg motor', [0,1,2,3,4]],
+  ['7 Limb ataxia', [0,1,2]],
+  ['8 Sensory', [0,1,2]],
+  ['9 Best language', [0,1,2,3]],
+  ['10 Dysarthria', [0,1,2]],
+  ['11 Extinction / inattention', [0,1,2]],
+];
+const ASPECTS_REGIONS = ['Caudate','Lentiform nucleus','Internal capsule','Insular ribbon','M1','M2','M3','M4','M5','M6'];
+const PCASPECTS_REGIONS = [['Left thalamus',1],['Right thalamus',1],['Left cerebellum',1],['Right cerebellum',1],['Left PCA territory',1],['Right PCA territory',1],['Midbrain',2],['Pons',2]];
+
+function buildNihss() {
+  const panel = document.getElementById('nihssCalc');
+  panel.innerHTML =
+    NIHSS_ITEMS.map((it,i) => '<div class="calc-row"><span>'+it[0]+'</span><select data-i="'+i+'">'+it[1].map(v=>'<option value="'+v+'">'+v+'</option>').join('')+'</select></div>').join('') +
+    '<div class="calc-foot"><span>Total NIHSS: <span class="tot" id="nihssTotal">0</span> / 42</span><button type="button" class="calc-use" id="nihssUse">Use score</button></div>';
+  const recompute = () => { let t=0; panel.querySelectorAll('select').forEach(s=>t+=Number(s.value)); document.getElementById('nihssTotal').textContent=t; };
+  panel.querySelectorAll('select').forEach(s=>s.addEventListener('change',recompute));
+  document.getElementById('nihssUse').addEventListener('click',()=>{
+    document.getElementById('nihss').value = document.getElementById('nihssTotal').textContent;
+    panel.style.display='none'; render();
+  });
+}
+function buildAspects(panelId, inputId, regions, start) {
+  const panel = document.getElementById(panelId);
+  panel.innerHTML =
+    '<div style="font-size:0.76rem;color:var(--ink-soft);margin-bottom:6px;">Check each region with early ischemic change:</div>' +
+    regions.map(r=>{ const name=Array.isArray(r)?r[0]:r; const w=Array.isArray(r)?r[1]:1;
+      return '<label class="calc-check"><input type="checkbox" data-w="'+w+'"> '+name+(w>1?' <span style="color:var(--ink-soft)">(−'+w+')</span>':'')+'</label>'; }).join('') +
+    '<div class="calc-foot"><span>Score: <span class="tot" id="'+panelId+'Total">'+start+'</span> / '+start+'</span><button type="button" class="calc-use">Use score</button></div>';
+  const recompute = () => { let sub=0; panel.querySelectorAll('input[type=checkbox]').forEach(c=>{ if(c.checked) sub+=Number(c.dataset.w); });
+    document.getElementById(panelId+'Total').textContent = Math.max(0,start-sub); };
+  panel.querySelectorAll('input[type=checkbox]').forEach(c=>c.addEventListener('change',recompute));
+  panel.querySelector('.calc-use').addEventListener('click',()=>{
+    document.getElementById(inputId).value = document.getElementById(panelId+'Total').textContent;
+    panel.style.display='none'; render();
+  });
+}
+function initCalcs() {
+  buildNihss();
+  buildAspects('aspectsCalc','aspects',ASPECTS_REGIONS,10);
+  buildAspects('pcaspectsCalc','pcaspects',PCASPECTS_REGIONS,10);
+  document.querySelectorAll('.mini-calc').forEach(btn=>btn.addEventListener('click',()=>{
+    const p = document.getElementById(btn.dataset.calc+'Calc');
+    p.style.display = (p.style.display==='none'||!p.style.display) ? 'block' : 'none';
+  }));
+}
+
+// ================= shareable case link (de-identified) =================
+function setSeg(id,val){ state[id]=val; const el=document.getElementById(id); if(el)[...el.children].forEach(c=>c.classList.toggle('on',c.dataset.val===val)); }
+function buildShareHash() {
+  const p = new URLSearchParams();
+  numIds.forEach(id=>{ const v=document.getElementById(id).value; if(v!=='') p.set(id,v); });
+  selIds.forEach(id=>{ const v=document.getElementById(id).value; if(v) p.set(id,v); });
+  segIds.forEach(id=>{ if(state[id]) p.set(id,state[id]); });
+  return p.toString();
+}
+function applyHash() {
+  const h = location.hash.replace(/^#/,''); if(!h) return;
+  const p = new URLSearchParams(h);
+  numIds.forEach(id=>{ if(p.has(id)) document.getElementById(id).value = p.get(id); });
+  selIds.forEach(id=>{ if(p.has(id)) document.getElementById(id).value = p.get(id); });
+  segIds.forEach(id=>{ if(p.has(id)) setSeg(id,p.get(id)); });
+  togglePerf();
+}
+document.getElementById('shareBtn').addEventListener('click',async()=>{
+  const hash = buildShareHash();
+  const url = location.origin + location.pathname + (hash?('#'+hash):'');
+  const note = document.getElementById('shareNote');
+  try { await navigator.clipboard.writeText(url); note.textContent='✓ Link copied to clipboard'; }
+  catch(e){ location.hash = hash; note.textContent='Link is in the address bar — copy it to share.'; }
+  setTimeout(()=>{ note.textContent='Encodes the clinical values only — no name, MRN, or identifiers.'; },3500);
+});
+
 initSegs();
+initCalcs();
+applyHash();
 render();
 renderRefs();
 
