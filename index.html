@@ -538,7 +538,7 @@ const TRIALS = [
     criteria: [
       { label: 'Age ≥ 18', fn: s => chk(num(s.age) === null, num(s.age) >= 18) },
       { label: 'NIHSS ≥ 6 (disabling)', fn: s => chk(num(s.nihss) === null, num(s.nihss) >= 6) },
-      { label: 'Randomization < 12 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) < 12) },
+      { label: 'Randomization ≤ 12 h from last known well', fn: s => chk(num(s.lkw) === null, num(s.lkw) <= 12) },
       { label: 'Pre-stroke independent (Barthel > 90 ≈ mRS 0–2)', fn: s => chk(num(s.mrs) === null, num(s.mrs) <= 2) },
       { label: 'Occlusion: carotid T / M1 (or ≥2 M2s)', fn: s => chk(need(s.occlusion), ['ica','m1'].includes(s.occlusion)) },
       { label: 'ASPECTS 6–10', fn: s => chk(num(s.aspects) === null, num(s.aspects) >= 6) },
